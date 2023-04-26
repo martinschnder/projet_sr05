@@ -1,0 +1,8 @@
+github.com/gotk3/gotk3 v0.6.1 h1:GJ400a0ecEEWrzjBvzBzH+pB/esEMIGdB9zPSmBdoeo=
+github.com/gotk3/gotk3 v0.6.1/go.mod h1:/hqFpkNa9T3JgNAE2fLvCdov7c5bw//FHNZrZ3Uv9/Q=
+github.com/mattn/go-gtk v0.0.0-20230419095350-e099c1bf7abc h1:L1NPQxvNA/Ad3evWGMX8lJPSmPo+b4L9Y5lsi0w1orA=
+github.com/mattn/go-gtk v0.0.0-20230419095350-e099c1bf7abc/go.mod h1:PwzwfeB5syFHXORC3MtPylVcjIoTDT/9cvkKpEndGVI=
+github.com/mattn/go-pointer v0.0.1 h1:n+XhsuGeVO6MEAp7xyEukFINEa+Quek5psIR/ylA6o0=
+github.com/mattn/go-pointer v0.0.1/go.mod h1:2zXcozF6qYGgmsG+SeTZz3oAbFLdD3OWqnUbNvJZAlc=
+github.com/visualfc/atk v1.2.3 h1:cnyxmreIU2ZcXP7Bw6h0wHfw66hoeopIW0WMWlrPW7w=
+github.com/visualfc/atk v1.2.3/go.mod h1:K8F6NsXI6t3RCLBfYPraLMGuMgHViJ+O5py8jKMfK54=
