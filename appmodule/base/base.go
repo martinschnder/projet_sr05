@@ -2,31 +2,49 @@ package base
 
 import (
 	"github.com/visualfc/atk/tk"
+	"strconv"
 )
 
 type Base struct {
 	Window *tk.Window
+	Text *tk.Text
 	Content string
+	Id int
 }
 
-func New() Base {
-    base := Base{
-		Window: NewWindow(),
-		Content: "aaaaa",
-	}
-	return base
-}
+func New(id int) Base {
+	content := "Voici le fichier initial"
 
-func NewWindow() *tk.Window {
 	win := tk.RootWindow()
-	lbl := tk.NewLabel(win, "Hello ATK")
+
 	btn := tk.NewButton(win, "Quit")
 	btn.OnCommand(func() {
 		tk.Quit()
 	})
-	tk.NewVPackLayout(win).AddWidgets(lbl, tk.NewLayoutSpacer(win, 0, true), btn)
-	win.ResizeN(300, 200)
-	win.SetTitle("ATK Sample")
+
+	txt := tk.NewText(win)
+	txt.InsertText(1.0, content)
+	txt.SetReadOnly(true)
+
+	lineNumber := tk.NewEntry(win)
+	labelLine := tk.NewLabel(win, "Numéro de ligne")
+
+	numberLayout = tk.NewVPackLayout(win)
+	numberLayout.AddWidgets(labelLine, lineNumber)
+	
+	tk.NewHPackLayout(win).AddWidgets(txt, btn)
+
+	tk.NewVPackLayout(win).AddWidgets(txt, btn)
+
+	win.ResizeN(700,700)
+	win.SetTitle("Utilisateur n°" + strconv.Itoa(id))
 	win.Center(nil)
-	return win
+
+    base := Base{
+		Window: win,
+		Text: txt,
+		Content: content,
+		Id: id,
+	}
+	return base
 }

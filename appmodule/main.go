@@ -7,7 +7,7 @@ import (
 
 func main() {
 	tk.MainLoop(func() {
-		base := base.New()
+		base := base.New(1)
 		base.Window.ShowNormal()
 	})
 }
