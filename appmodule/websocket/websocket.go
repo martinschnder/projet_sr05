@@ -4,7 +4,6 @@ import (
 	"fmt"
     "net/http"
 	"github.com/gorilla/websocket"
-	"time"
 	"appmodule/display"
 	"sync"
 )
@@ -13,35 +12,25 @@ var ws *websocket.Conn = nil
 var Mutex = &sync.Mutex{}
 var Message string = "hello"
 
-func Do_websocket(w http.ResponseWriter, r *http.Request) {
+func Do(w http.ResponseWriter, r *http.Request) {
     var upgrader = websocket.Upgrader{
         CheckOrigin : func(r *http.Request) bool { return true },
     }
 
     cnx,err := upgrader.Upgrade(w, r, nil)
-    if err != nil {
-        display.Display_e("ws_create", "Upgrade error : " + string(err.Error()))
+    
+	if err != nil {
+        display.Error("ws_create", "Upgrade error : " + string(err.Error()))
         return
     }
 
-    display.Display_d("ws_create", "Client connecté")
+    display.Info("ws_create", "Client connecté")
 
     ws = cnx
-    go Ws_receive()  
+    go receive()  
 }
 
-func Do_webserver(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintf(w, "Bonjour depuis le serveur web en Go !")
-}
-
-func Do_send() {
-	for {
-		Ws_send("Hello depuis le serveur");
-		time.Sleep(time.Duration(4) * time.Second)
-	}
-}
-
-func Ws_send(msg string) {
+func Send(msg string) {
     if ( ws == nil ) {
          fmt.Println("ws_send", "websocket non ouverte")
     } else {
@@ -54,25 +43,25 @@ func Ws_send(msg string) {
     }
 }
 
-func Ws_close() {
-    display.Display_d("ws_close", "Fin des réceptions => fermeture de la websocket")
+func close() {
+    display.Info("ws_close", "Fin des réceptions => fermeture de la websocket")
     ws.Close()
 }
 
-func Ws_receive() {
-    defer Ws_close()
+func receive() {
+    defer close()
 
     for {
         _, rcvmsg, err := ws.ReadMessage()
 
         if err != nil {
-            display.Display_e("ws_receive", "ReadMessage : " + string(err.Error()))
+            display.Error("ws_receive", "ReadMessage : " + string(err.Error()))
             break
         }
 
         Mutex.Lock()
       
-        display.Display_d("ws_receive", "réception : " + string(rcvmsg[:]) )
+        display.Info("ws_receive", "réception : " + string(rcvmsg[:]) )
         Message = string(rcvmsg)
                
         Mutex.Unlock()

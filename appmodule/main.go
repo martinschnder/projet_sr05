@@ -25,10 +25,10 @@ func sendperiodic() {
         websocket.Mutex.Lock()
 
         h = h + 1
-        display.Display_d("sendperiodic", "h = " + strconv.Itoa(h))
-        message.Msg_send(message.Msg_format("msg", websocket.Message) + message.Msg_format("hlg", strconv.Itoa(h)) )
+        display.Info("sendperiodic", "h = " + strconv.Itoa(h))
+        message.Send(message.Format("msg", websocket.Message) + message.Format("hlg", strconv.Itoa(h)) )
 
-        websocket.Ws_send(strconv.Itoa(h))
+        websocket.Send(strconv.Itoa(h))
         
         websocket.Mutex.Unlock()
         time.Sleep(time.Duration(4) * time.Second)
@@ -44,7 +44,7 @@ func receive() {
         fmt.Scanln(&rcvmsg)
         websocket.Mutex.Lock()
 
-        display.Display_d("receive", "received msg is " + rcvmsg)
+        display.Info("receive", "received msg is " + rcvmsg)
 
         s_hrcv = message.Findval(rcvmsg, "hlg")
         if s_hrcv != "" {
@@ -52,8 +52,8 @@ func receive() {
         }
         
         h = recaler(h, hrcv);
-        display.Display_d("receive", "now h = " + strconv.Itoa(h))
-        websocket.Ws_send(strconv.Itoa(h))
+        display.Info("receive", "now h = " + strconv.Itoa(h))
+        websocket.Send(strconv.Itoa(h))
         
         websocket.Mutex.Unlock()
         rcvmsg = ""
@@ -71,6 +71,6 @@ func main() {
     go sendperiodic()
     go receive()
 
-    http.HandleFunc("/ws", websocket.Do_websocket)
+    http.HandleFunc("/ws", websocket.Do)
     http.ListenAndServe(*addr + ":" + *port, nil)   
 }

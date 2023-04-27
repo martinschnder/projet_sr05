@@ -9,18 +9,18 @@ import (
 var fieldsep = "/"
 var keyvalsep = "="
 
-func Msg_format(key string, val string) string {
+func Format(key string, val string) string {
     return fieldsep + keyvalsep + key + keyvalsep + val
 }
 
-func Msg_send(msg string) {
-	display.Display_d("msg_send", "émission de " + msg)
+func Send(msg string) {
+	display.Info("msg_send", "émission de " + msg)
     fmt.Print(msg + "\n")
 }
 
 func Findval(msg string, key string) string {
     if len(msg) < 4 {
-		display.Display_w("findval", "message trop court : " + msg);
+		display.Warning("findval", "message trop court : " + msg);
         return ""
     }
 
