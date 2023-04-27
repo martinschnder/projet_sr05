@@ -1,11 +1,11 @@
 package net
 
 import (
-	"container/list"
+	// "container/list"
 	"fmt"
 	"log"
 	"os"
-  "time"
+  // "time"
 	. "projet/message"
 	. "projet/utils"
 )
@@ -16,7 +16,8 @@ type Net struct {
 	id       int
 	clock    int
 	tab      [NB_SITES]Request
-	messages list.List
+	// messages list.List
+	messages chan MessageWrapper
   // bas Bas
 }
 
@@ -26,7 +27,8 @@ func NewNet(id int) *Net {
 	n.clock = 0
 	var tab [NB_SITES]Request
 	n.tab = tab
-	n.messages = *list.New()
+	// n.messages = *list.New()
+  n.messages = make(chan MessageWrapper)
   return n
 }
 
@@ -120,6 +122,7 @@ func (n Net) receiveReleaseMessage(msg Message) {
 }
 
 func (n Net) receiveAckMessage(msg Message) {
+  n.logger("Received ack message")
 	n.clock = Max(n.clock, msg.Stamp) + 1
 	if n.tab[msg.From].RequestType == "release" {
 		n.tab[msg.From] = Request{
@@ -135,20 +138,30 @@ func (n Net) receiveAckMessage(msg Message) {
 func (n Net) ReadMessage() {
   n.logger("Read message thread initialization")
 	var raw string
-	fmt.Scanln(&raw)
-  n.logger("Detected new message")
-	var msg = MessageFromString(raw)
-	if msg.From != n.id {
-		n.messages.PushBack(MessageWrapper{
-			Action:  "process",
-			Message: msg,
-		})
-    n.logger("Pushed new message on the queue")
-	}
+  for {
+    fmt.Scanln(&raw)
+    n.logger("Detected new message")
+    var msg = MessageFromString(raw)
+    if msg.From != n.id {
+      // n.messages.PushBack(MessageWrapper{
+      // 	Action:  "process",
+      // 	Message: msg,
+      // })
+      n.messages <- MessageWrapper{
+        Action:  "process",
+        Message: msg,
+      }
+      n.logger("Pushed new message on the queue")
+    }
+  }
 }
 
 func (n Net) writeMessage(msg Message) {
-	n.messages.PushBack(MessageWrapper{
+	// n.messages.PushBack(MessageWrapper{
+	// 	Action:  "send",
+	// 	Message: msg,
+	// })
+	n.messages <- (MessageWrapper{
 		Action:  "send",
 		Message: msg,
 	})
@@ -165,10 +178,11 @@ func (n Net) logger(content string) {
 
 func (n Net) MessageHandler() {
 	for {
-		e := n.messages.Front()
-		if e != nil { // TODO interface for queue
+		// e := n.messages.Front()
+    wrapperItem := <- n.messages
+		// if e != nil { // TODO interface for queue
       n.logger("New message on the queue")
-			wrapperItem := MessageWrapper(e.Value.(MessageWrapper))
+			// wrapperItem := MessageWrapper(e.Value.(MessageWrapper))
       var msg = wrapperItem.Message
 			if wrapperItem.Action == "send" {
 				n.logger("The handler spreads message on the ring")
@@ -187,12 +201,12 @@ func (n Net) MessageHandler() {
 					n.logger("The handler forwards the message")
           msg.Send()
 				}
-      n.messages.Remove(e)
+      // n.messages.Remove(e)
 			}
-		} else {
-      n.logger("No message on the queue")
-      time.Sleep(time.Duration(2) * time.Second)
-    }
+		// } else {
+  //     n.logger("No message on the queue")
+  //     time.Sleep(time.Duration(2) * time.Second)
+  //   }
 	}
 }
 
