@@ -2,4 +2,7 @@ module appmodule
 
 go 1.20
 
-require github.com/visualfc/atk v1.2.3 // indirect
+require (
+	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
+)
