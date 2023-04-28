@@ -28,7 +28,7 @@ func sendperiodic() {
         display.Info("sendperiodic", "h = " + strconv.Itoa(h))
         message.Send(message.Format("msg", websocket.Message) + message.Format("hlg", strconv.Itoa(h)) )
 
-        websocket.Send(strconv.Itoa(h))
+        websocket.Send(h)
         
         websocket.Mutex.Unlock()
         time.Sleep(time.Duration(4) * time.Second)
@@ -53,7 +53,7 @@ func receive() {
         
         h = recaler(h, hrcv);
         display.Info("receive", "now h = " + strconv.Itoa(h))
-        websocket.Send(strconv.Itoa(h))
+        websocket.Send(h)
         
         websocket.Mutex.Unlock()
         rcvmsg = ""

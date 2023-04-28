@@ -63,16 +63,23 @@ Editor
   margin-top: 40px;
 }
 .editor {
-  min-height: 60vh;
+  min-height: 62vh;
   width: 80%;
   background: #ffffff;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
-  padding-left: 20px;
-  padding-right: 20px;
-  padding-top: 40px;
+  padding: 20px;
   margin-left: 8%;
   margin-right: 5%;
   outline: none;
+}
+.line {
+  display: flex;
+}
+.line-number {
+  display: inline-block;
+  width: 20px;
+  margin-right: 10px;
+  color: gray;
 }
 
 /*--------------------
@@ -97,7 +104,9 @@ label {
   color: hsla(0, 0, 0, 0.6);
   margin-bottom: 5px;
 }
-input {
+
+input,
+.select {
   position: relative;
   width: 82px;
   margin-right: 8px;
@@ -108,8 +117,41 @@ input {
   outline: none !important;
   box-shadow: 0 4px 8px 0 rgba(148, 148, 148, 0.19),
     0 6px 20px 0 rgba(165, 165, 165, 0.19);
+  background-color: white;
+  border: none;
 }
 
+.select::after {
+  content: "";
+  border-top: 8px solid #222;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 15px;
+  pointer-events: none;
+}
+
+select {
+  appearance: none;
+  position: absolute;
+  top: 5px;
+  border: none;
+  width: 82%;
+  padding-bottom: 8px;
+  outline: none !important;
+  background: none;
+}
+label[for="select-line-number"] + .select {
+  width: 60px;
+}
+label[for="action"] + .select {
+  width: 100px;
+}
+label[for="text"] + input {
+  width: 300px;
+}
 /*--------------------
 Logs
 --------------------*/

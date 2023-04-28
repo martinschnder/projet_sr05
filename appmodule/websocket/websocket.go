@@ -5,12 +5,20 @@ import (
     "net/http"
 	"github.com/gorilla/websocket"
 	"appmodule/display"
+    "appmodule/message"
 	"sync"
 )
 
 var ws *websocket.Conn = nil
 var Mutex = &sync.Mutex{}
-var Message string = "hello"
+var Message string = `hello moi
+
+c'est bobby ca va`
+
+type messageToSend struct {
+    Message string
+    Horloge int
+}
 
 func Do(w http.ResponseWriter, r *http.Request) {
     var upgrader = websocket.Upgrader{
@@ -30,15 +38,19 @@ func Do(w http.ResponseWriter, r *http.Request) {
     go receive()  
 }
 
-func Send(msg string) {
+func Send(hlg int) {
     if ( ws == nil ) {
          fmt.Println("ws_send", "websocket non ouverte")
     } else {
-        err := ws.WriteMessage( websocket.TextMessage,  []byte(msg) )
+        formattedMessage := messageToSend{
+            Message,
+            hlg,
+        }
+        err := ws.WriteJSON(&formattedMessage)
         if err != nil {
             fmt.Println("ws_send", "WriteMessage : " + string(err.Error()))
         } else {
-            fmt.Println("ws_send", "sending " + msg)
+            fmt.Printf("ws_send sending : %+v\n", formattedMessage)
         }
     }
 }
@@ -62,8 +74,8 @@ func receive() {
         Mutex.Lock()
       
         display.Info("ws_receive", "réception : " + string(rcvmsg[:]) )
-        Message = string(rcvmsg)
-               
+        // message recu du type /=line=13/=action=Remplacer/=message=kugbj
+        
         Mutex.Unlock()
     }
 }

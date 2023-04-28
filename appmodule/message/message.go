@@ -10,6 +10,7 @@ var fieldsep = "/"
 var keyvalsep = "="
 
 func Format(key string, val string) string {
+    val = strings.ReplaceAll(val, "\n", "\\n")
     return fieldsep + keyvalsep + key + keyvalsep + val
 }
 
