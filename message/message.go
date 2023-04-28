@@ -38,7 +38,7 @@ func MessageFromString(raw string) Message {
 }
 
 func (msg Message) ToString() string {
-	formatted_str := fmt.Sprintf(",=From=%d,=To=%d,=Content=%s,=Stamp=%d,=MessageType=%s", msg.From, msg.To, msg.Content, msg.Stamp, msg.MessageType)
+	formatted_str := fmt.Sprintf(",=From=%d,=To=%d,=Content=%s,=Stamp=%d,=MessageType=%s\n", msg.From, msg.To, msg.Content, msg.Stamp, msg.MessageType)
 	return formatted_str
 }
 
@@ -54,4 +54,29 @@ type MessageWrapper struct {
 type Request struct {
 	RequestType string
 	Stamp       int
+}
+
+type Command struct {
+  Line int
+  Action string
+  Content string
+}
+
+func ParseCommand(raw string) Command {
+  dict := make(map[string]string)
+	keyVals := strings.Split(raw[1:], raw[0:1])
+	for _, keyVal := range keyVals {
+		tuple := strings.Split(keyVal[1:], keyVal[0:1])
+		dict[tuple[0]] = tuple[1]
+	}
+	line, _ := strconv.Atoi(dict["line"])
+	action := dict["action"]
+	content := dict["message"]
+
+	command := Command {
+		line,
+		action,
+		content,
+	}
+	return command
 }
