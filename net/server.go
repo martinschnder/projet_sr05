@@ -74,6 +74,9 @@ func (server Server)receive() {
             utils.Error(server.id, "ws_receive", "ReadMessage : " + string(err.Error()))
             break
         }
+        for i:=0; i < NB_SITES; i++ {
+          utils.Error(i, "request state", server.net.tab[i].RequestType)
+        }
         server.mutex.Lock()
         command := ParseCommand(string(rcvmsg))
         server.command = command
