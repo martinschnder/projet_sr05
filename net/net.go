@@ -58,7 +58,7 @@ func (n Net) receiveCSRelease() {
 		RequestType: "release",
 		Stamp:       n.clock,
 	}
-	n.logger("Server CS release received")
+  utils.Info(n.id, "MessageHandler", "Server CS release received")
 	msg := Message{
 		From:        n.id,
 		To:          -1,
@@ -126,7 +126,7 @@ func (n Net) receiveReleaseMessage(msg Message) {
 }
 
 func (n Net) receiveAckMessage(msg Message) {
-	n.logger("Received ack message")
+  utils.Info(n.id, "MessageHandler", "Received ack message")
 	n.clock = Max(n.clock, msg.Stamp) + 1
 	if n.tab[msg.From].RequestType == "release" {
 		n.tab[msg.From] = Request{
@@ -163,15 +163,6 @@ func (n Net) writeMessage(msg Message) {
 	})
 }
 
-func (n Net) logger(content string) {
-	cyan := "\033[1;36m"
-	raz := "\033[0;00m"
-	stderr := log.New(os.Stderr, "", 0)
-	stderr.Printf("%s", cyan)
-	stderr.Printf("From site %d : %s\n", n.id, content)
-	stderr.Printf("%s", raz)
-}
-
 func (n Net) MessageHandler() {
   utils.Info(n.id, "MessageHandler", "Waiting for new messages")
 	for {
@@ -183,16 +174,16 @@ func (n Net) MessageHandler() {
 			msg.Send()
 		} else if wrapperItem.Action == "process" {
 			if msg.To == n.id {
-				n.logger("The handler processes message")
+        utils.Info(n.id, "MessageHandler", "Handler processing the message")
 				n.receiveExternalMessage(msg)
 			} else if msg.To == -1 && msg.From != n.id { // message for all
 				// process and spread the message on the ring
-				n.logger("The handler processes and spreads message on the ring")
+        utils.Info(n.id, "MessageHandler", "Handler processing and sending the message")
 				n.receiveExternalMessage(msg)
 				msg.Send()
 			} else { // message not for us
 				// forward the message
-				n.logger("The handler forwards the message")
+        utils.Info(n.id, "MessageHandler", "Handler forwarding the message")
 				msg.Send()
 			}
 		}
