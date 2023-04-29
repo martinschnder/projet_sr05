@@ -1,207 +1,209 @@
 <!DOCTYPE html>
 <html>
-
-<head>
+  <head>
     <meta charset="UTF-8" />
     <title>Co-Write On Time</title>
     <link rel="stylesheet" href="client.css" />
-</head>
+  </head>
 
-<body>
+  <body>
     <div class="container">
-        <div class="main">
-            <h2>Connection websocket</h2>
-            <form>
-                <div class="form-container">
-                    <fieldset class="fieldset-host">
-                        <label for="host">HOST</label>
-                        <input id="host" type="text" size="10" value="localhost">
-                    </fieldset>
-                    <fieldset class="fieldset-port">
-                        <label for="port">PORT</label>
-                        <input id="port" type="text" maxlength="5" size="5" value="4444">
-                    </fieldset>
-                    <div class="button-container">
-                        <button class="btn-color" id="connecter">Connecter</button>
-                        <button class="btn-color" id="fermer">Fermer</button>
-                    </div>
-                </div>
-            </form>
-            <div class="edit-content">
-                <h2>Application</h2>
-                <form>
-                    <div class="form-container">
-                        <fieldset class="fieldset-line-number">
-                            <label for="select-line-number">Ligne</label>
-                            <div class="select">
-                                <select id="select-line-number">
-                                    <option selected>1</option>
-                                    <option>2</option>
-                                    <option>3</option>
-                                    <option>4</option>
-                                    <option>5</option>
-                                    <option>6</option>
-                                    <option>7</option>
-                                    <option>8</option>
-                                    <option>9</option>
-                                    <option>10</option>
-                                    <option>11</option>
-                                    <option>12</option>
-                                    <option>13</option>
-                                    <option>14</option>
-                                    <option>15</option>
-                                    <option>16</option>
-                                    <option>17</option>
-                                    <option>18</option>
-                                    <option>19</option>
-                                    <option>20</option>
-                                    <option>21</option>
-                                    <option>22</option>
-                                    <option>23</option>
-                                    <option>24</option>
-                                    <option>25</option>
-                                    <option>26</option>
-                                    <option>27</option>
-                                    <option>28</option>
-                                    <option>29</option>
-                                    <option>30</option>
-                                </select>
-                            </div>
-                        </fieldset>
-                        <fieldset class="fieldset-action">
-                            <label for="action">Action</label>
-                            <div class="select">
-                                <select id="select-action">
-                                    <option selected>Remplacer</option>
-                                    <option>Ajouter</option>
-                                    <option>Supprimer</option>
-                                </select>
-                            </div>
-                        </fieldset>
-                        <fieldset class="fieldset-text">
-                            <label for="text">Texte</label>
-                            <input id="text" type="text" value="Hello world!">
-                        </fieldset>
-                        <div class="button-container">
-                            <button class="btn-color" id="envoyer">Envoyer</button>
-                        </div>
-                    </div>
-                </form>
-                <div class="editor" id="editor">
-                </div>
+      <div class="main">
+        <h2>Connection websocket</h2>
+        <form>
+          <div class="form-container">
+            <fieldset class="fieldset-host">
+              <label for="host">HOST</label>
+              <input id="host" type="text" size="10" value="localhost" />
+            </fieldset>
+            <fieldset class="fieldset-port">
+              <label for="port">PORT</label>
+              <input
+                id="port"
+                type="text"
+                maxlength="5"
+                size="5"
+                value="4444"
+              />
+            </fieldset>
+            <div class="button-container">
+              <button class="btn-color" id="connecter">Connecter</button>
+              <button class="btn-color" id="fermer">Fermer</button>
             </div>
-        </div>
-        <div class="logs">
-            <h2>Logs</h2>
-            <div class="horloge">
-                Horloge : <span id="hlg"></span>
+          </div>
+        </form>
+        <div class="edit-content">
+          <h2>Application</h2>
+          <form>
+            <div class="form-container">
+              <fieldset class="fieldset-line-number">
+                <label for="select-line-number">Ligne</label>
+                <div class="select">
+                  <select id="select-line-number">
+                    <option selected>1</option>
+                    <option>2</option>
+                    <option>3</option>
+                    <option>4</option>
+                    <option>5</option>
+                    <option>6</option>
+                    <option>7</option>
+                    <option>8</option>
+                    <option>9</option>
+                    <option>10</option>
+                    <option>11</option>
+                    <option>12</option>
+                    <option>13</option>
+                    <option>14</option>
+                    <option>15</option>
+                    <option>16</option>
+                    <option>17</option>
+                    <option>18</option>
+                    <option>19</option>
+                    <option>20</option>
+                    <option>21</option>
+                    <option>22</option>
+                    <option>23</option>
+                    <option>24</option>
+                    <option>25</option>
+                    <option>26</option>
+                    <option>27</option>
+                    <option>28</option>
+                    <option>29</option>
+                    <option>30</option>
+                  </select>
+                </div>
+              </fieldset>
+              <fieldset class="fieldset-action">
+                <label for="action">Action</label>
+                <div class="select">
+                  <select id="select-action">
+                    <option selected>Remplacer</option>
+                    <option>Ajouter</option>
+                    <option>Supprimer</option>
+                  </select>
+                </div>
+              </fieldset>
+              <fieldset class="fieldset-text">
+                <label for="text">Texte</label>
+                <input id="text" type="text" value="Hello world!" />
+              </fieldset>
+              <div class="button-container">
+                <button class="btn-color" id="envoyer">Envoyer</button>
+              </div>
             </div>
-            <div id="text-logs"></div>
+          </form>
+          <div class="editor" id="editor"></div>
         </div>
+      </div>
+      <div class="logs">
+        <h2>Logs</h2>
+        <div class="horloge">Horloge : <span id="hlg"></span></div>
+        <div id="text-logs"></div>
+      </div>
     </div>
 
     <script>
-        var ws;
-        var fieldsep = "/"
-        var keyvalsep = "="
+      var ws;
+      var fieldsep = "/";
+      var keyvalsep = "=";
 
-        document.getElementById("connecter").onclick = function (evt) {
-            if (ws) {
-                return false;
-            }
-
-            var host = document.getElementById("host").value;
-            var port = document.getElementById("port").value;
-
-            addToLog("Tentative de connexion")
-            addToLog("host = " + host + ", port = " + port)
-            ws = new WebSocket("ws://" + host + ":" + port + "/ws");
-
-            ws.onopen = function (evt) {
-                addToLog("Websocket ouverte");
-            }
-
-            ws.onclose = function (evt) {
-                addToLog("Websocket fermée");
-                ws = null;
-            }
-
-            ws.onmessage = function (evt) {
-                addToLog("Réception: " + evt.data);
-                var jsonMessage = JSON.parse(evt.data);
-                const editor = document.querySelector('.editor');
-                editor.innerHTML = '';
-                const lines = jsonMessage.Message.split('\n');
-                lines.forEach((line, index) => {
-                    const lineDiv = document.createElement('div');
-                    lineDiv.classList.add('line');
-
-                    const lineNumber = document.createElement('span');
-                    lineNumber.textContent = index + 1;
-                    lineNumber.classList.add('line-number');
-
-                    lineDiv.appendChild(lineNumber);
-
-                    const lineContent = document.createTextNode(line);
-                    lineDiv.appendChild(lineContent);
-
-                    editor.appendChild(lineDiv);
-                });
-                document.getElementById("hlg").innerHTML = jsonMessage.Horloge;
-            }
-
-            ws.onerror = function (evt) {
-                addToLog("Erreur: " + evt.data);
-            }
-            return false;
+      document.getElementById("connecter").onclick = function (evt) {
+        if (ws) {
+          return false;
         }
 
-        document.getElementById("fermer").onclick = function (evt) {
-            if (!ws) {
-                return false;
-            }
-            ws.close();
-            return false;
+        var host = document.getElementById("host").value;
+        var port = document.getElementById("port").value;
+
+        addToLog("Tentative de connexion");
+        addToLog("host = " + host + ", port = " + port);
+        ws = new WebSocket("ws://" + host + ":" + port + "/ws");
+
+        ws.onopen = function (evt) {
+          addToLog("Websocket ouverte");
+        };
+
+        ws.onclose = function (evt) {
+          addToLog("Websocket fermée");
+          ws = null;
+        };
+
+        ws.onmessage = function (evt) {
+          addToLog("Réception: " + evt.data);
+          let jsonMessage = JSON.parse(evt.data);
+          const editor = document.querySelector(".editor");
+          editor.innerHTML = "";
+          jsonMessage.forEach(function(line, index) {
+            const lineDiv = document.createElement("div");
+            lineDiv.classList.add("line");
+
+            const lineNumber = document.createElement("span");
+            lineNumber.textContent = index + 1;
+            lineNumber.classList.add("line-number");
+
+            lineDiv.appendChild(lineNumber);
+
+            const lineContent = document.createTextNode(line);
+            lineDiv.appendChild(lineContent);
+
+            editor.appendChild(lineDiv);
+          });
+        };
+
+        ws.onerror = function (evt) {
+          addToLog("Erreur: " + evt.data);
+        };
+        return false;
+      };
+
+      document.getElementById("fermer").onclick = function (evt) {
+        if (!ws) {
+          return false;
         }
+        ws.close();
+        return false;
+      };
 
-        document.getElementById("envoyer").onclick = function (evt) {
-            if (!ws) {
-                return false;
-            }
-            var line = document.getElementById("select-line-number").value;
-            var action = document.getElementById("select-action").value;
-            var message = document.getElementById("text").value;
-            var sndmsg = format("line", line) + format("action", action) + format("message", message)
-
-            addToLog("Envoi: " + sndmsg);
-            ws.send(sndmsg);
-            return false;
+      document.getElementById("envoyer").onclick = function (evt) {
+        if (!ws) {
+          return false;
         }
+        var line = document.getElementById("select-line-number").value;
+        var action = document.getElementById("select-action").value;
+        var message = document.getElementById("text").value;
+        var sndmsg =
+          format("line", line) +
+          format("action", action) +
+          format("message", message);
 
-        const selectAction = document.getElementById('select-action');
-        const textInput = document.getElementById('text');
+        addToLog("Envoi: " + sndmsg);
+        ws.send(sndmsg);
+        return false;
+      };
 
-        selectAction.addEventListener('change', function () {
-            if (selectAction.value === 'Supprimer') {
-                textInput.disabled = true;
-                textInput.value = '';
-            } else {
-                textInput.disabled = false;
-            }
-        });
+      const selectAction = document.getElementById("select-action");
+      const textInput = document.getElementById("text");
 
-        function addToLog(message) {
-            var logs = document.getElementById("text-logs");
-            var d = document.createElement("div");
-            d.textContent = message;
-            logs.appendChild(d);
-            logs.scroll(0, logs.scrollHeight);
+      selectAction.addEventListener("change", function () {
+        if (selectAction.value === "Supprimer") {
+          textInput.disabled = true;
+          textInput.value = "";
+        } else {
+          textInput.disabled = false;
         }
+      });
 
-        function format(key, val) {
-            return fieldsep + keyvalsep + key + keyvalsep + val
-        }
+      function addToLog(message) {
+        var logs = document.getElementById("text-logs");
+        var d = document.createElement("div");
+        d.textContent = message;
+        logs.appendChild(d);
+        logs.scroll(0, logs.scrollHeight);
+      }
+
+      function format(key, val) {
+        return fieldsep + keyvalsep + key + keyvalsep + val;
+      }
     </script>
-</body>
-
+  </body>
 </html>
