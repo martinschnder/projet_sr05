@@ -2,12 +2,9 @@ package net
 
 import (
 	"net/http"
-	"projet/message"
+	. "projet/message"
 	"projet/utils"
-
 	"sync"
-	"time"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -17,60 +14,8 @@ type Server struct {
   data []string
   id int
   net *Net
+  command Command
 }
-
-// func (s Server) recaler(distant_hlg int) {
-// 	if s.clock < distant_hlg {
-// 		s.clock = distant_hlg + 1
-// 	} else {
-// 		s.clock += 1
-// 	}
-// }
-
-func (server Server) sendPeriodic() {
-	for {
-		server.mutex.Lock()
-
-		// server.clock = server.clock + 1
-		utils.Info(server.id, "sendperiodic", "h = idk")
-		// message.Send(message.Format("msg", websocket.Message) + message.Format("hlg", strconv.Itoa(s.clock)))
-    utils.Info(server.id,"msg_send", "émission hello" )
-
-		server.Send()
-
-		server.mutex.Unlock()
-		time.Sleep(time.Duration(4) * time.Second)
-	}
-}
-
-// func (b Server) receive() {
-// 	var rcvmsg string
-// 	var s_hrcv string
-// 	var hrcv int
-//
-// 	for {
-// 		fmt.Scanln(&rcvmsg)
-// 		websocket.Mutex.Lock()
-//
-// 		display.Info("receive", "received msg is "+rcvmsg)
-//
-// 		s_hrcv = message.Findval(rcvmsg, "hlg")
-// 		if s_hrcv != "" {
-// 			hrcv, _ = strconv.Atoi(s_hrcv)
-// 		}
-//
-// 		s.recaler(hrcv)
-// 		display.Info("receive", "now h = "+strconv.Itoa(s.clock))
-// 		websocket.Send(s.clock)
-//
-// 		websocket.Mutex.Unlock()
-// 		rcvmsg = ""
-// 	}
-// }
-// func (b Server)AskCs() {
-//   fmt.Println("Requested cs from bas")
-//   s.net.ReceiveCSrequest()
-// }
 
 func NewServer(port string, addr string, id int, net *Net) *Server {
 	server := new(Server)
@@ -81,8 +26,6 @@ func NewServer(port string, addr string, id int, net *Net) *Server {
   server.data = make([]string, 30)
   server.data[0] = "Hello, World!"
   server.id = id
-
-	// go server.sendPeriodic()
 
 	go http.HandleFunc("/ws", server.createSocket)
 	go http.ListenAndServe(addr+":"+port, nil)
@@ -102,16 +45,13 @@ func (server Server)createSocket(w http.ResponseWriter, r *http.Request) {
     utils.Info(server.id, "ws_create", "Client connecté")
     server.socket = cnx
     go server.receive()
+    server.Send()
 }
 
 func (server Server)Send() {
     if (server.socket == nil ) {
          utils.Error(server.id, "ws_send", "websocket non ouverte")
     } else {
-        // formattedMessage := messageToSend{
-        //     socket.message,
-        //     hlg,
-        // }
         err := server.socket.WriteJSON(&server.data)
         if err != nil {
             utils.Error(server.id, "ws_send", "Error message : " + string(err.Error()))
@@ -135,14 +75,46 @@ func (server Server)receive() {
             break
         }
         server.mutex.Lock()
-    command := message.ParseCommand(string(rcvmsg))
+        command := ParseCommand(string(rcvmsg))
+        server.command = command
         utils.Info(server.id, "ws_receive", "réception : " + string(rcvmsg[:]) )
-
-        // TODO handle message
         server.net.ReceiveCSrequest()
         utils.Info(server.id, "ws_receive", "commande de type : " + string(command.Action) )
-        
-        // server.Send()
         server.mutex.Unlock()
     }
+}
+
+func (server Server)EditData(command Command) {
+  switch command.Action {
+  case "Replace":
+    server.data[command.Line] = command.Content
+  case "Add":
+    server.data[command.Line] += command.Content
+  case "Remove":
+    server.data[command.Line] = ""
+}
+  server.forwardEdition(command)
+  server.Send()
+}
+
+func (server Server)forwardEdition(command Command) {
+  server.net.sendMessageFromServer(Message{
+    From: server.net.id,
+    To: -1,
+    Content: command.ToString(),
+    Stamp: server.net.clock,
+    MessageType: "EditMessage",
+  })
+}
+
+// Used by net to send a message to server
+func (server Server)SendMessage(action string) {
+  if action == "OkCs" {
+    // Request accepted
+    server.EditData(server.command)
+  } else {
+    // Incoming command from another site
+    command := ParseCommand(action)
+    server.EditData(command)
+  }
 }

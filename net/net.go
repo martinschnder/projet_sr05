@@ -1,14 +1,8 @@
 package net
 
 import (
-	// "container/list"
 	"fmt"
-	"log"
-	"os"
-
-	// "time"
 	. "projet/message"
-	// . "projet/server"
 	"projet/utils"
 	. "projet/utils"
 )
@@ -42,6 +36,9 @@ func (n Net) ReceiveCSrequest() {
 		RequestType: "access",
 		Stamp:       n.clock,
 	}
+  for i:=0; i < NB_SITES; i++ {
+    utils.Error(i, "request state", n.tab[i].RequestType)
+  }
 	msg := Message{
 		From:        n.id,
 		To:          -1,
@@ -81,6 +78,7 @@ func (n Net) receiveExternalMessage(msg Message) {
 }
 
 func (n Net) receiveRequestMessage(received_msg Message) {
+  utils.Info(n.id, "receiveRequestMessage", "Received request message")
 	n.clock = Max(n.clock, received_msg.Stamp) + 1
 	n.tab[received_msg.From] = Request{
 		RequestType: "access",
@@ -93,9 +91,11 @@ func (n Net) receiveRequestMessage(received_msg Message) {
 		Stamp:       n.clock,
 		MessageType: "AckMessage",
 	}
-	n.writeMessage(msg)
+  utils.Info(n.id, "receiveRequestMessage", "Sending Ack message")
+	go n.writeMessage(msg)
 	if n.tab[n.id].RequestType == "access" && n.isLastRequest() {
-		// TODO send okCS to server
+    n.server.SendMessage("OkCs")
+    utils.Info(n.id, "MessageHandler", "Sending OkCs to server")
 	}
 }
 
@@ -103,25 +103,30 @@ func (n Net) isLastRequest() bool {
 	for i := 0; i < NB_SITES; i++ {
 		if i != n.id {
 			if n.tab[i].Stamp < n.tab[n.id].Stamp {
+        utils.Warning(n.id, "isLastRequest", "false")
 				return false
 			} else if n.tab[i].Stamp == n.tab[n.id].Stamp {
 				if i < n.id {
+          utils.Warning(n.id, "isLastRequest", "false")
 					return false
 				}
 			}
 		}
 	}
+  utils.Warning(n.id, "isLastRequest", "true")
 	return true
 }
 
 func (n Net) receiveReleaseMessage(msg Message) {
+  utils.Info(n.id, "receiveReleaseMessage", "Received release message")
 	n.clock = Max(n.clock, msg.Stamp) + 1
 	n.tab[msg.From] = Request{
 		RequestType: "release",
 		Stamp:       msg.Stamp,
 	}
 	if n.tab[n.id].RequestType == "access" && n.isLastRequest() {
-		// TODO send okCS to server
+    n.server.SendMessage("OkCs")
+    utils.Info(n.id, "MessageHandler", "Sending OkCs to server")
 	}
 }
 
@@ -134,12 +139,14 @@ func (n Net) receiveAckMessage(msg Message) {
 			Stamp:       msg.Stamp,
 		}
 	}
+  utils.Warning(n.id, "receiveAckMessage", "request : " + n.tab[n.id].RequestType)
 	if n.tab[n.id].RequestType == "access" && n.isLastRequest() {
+    n.server.SendMessage("OkCs")
+    utils.Info(n.id, "MessageHandler", "Sending OkCs to server")
 	}
 }
 
 func (n Net) ReadMessage() {
-  utils.Info(n.id, "ReadMessage", "Read message thread initialization")
 	var raw string
 	for {
 		fmt.Scanln(&raw)
@@ -150,13 +157,12 @@ func (n Net) ReadMessage() {
 				Action:  "process",
 				Message: msg,
 			}
-      utils.Info(n.id, "ReadMessage", "Pushed new message on the queue")
 		}
 	}
 }
 
 func (n Net) writeMessage(msg Message) {
-		utils.Info(n.id, "WriteMessage", "Writing new message on the queue")
+		// utils.Info(n.id, "WriteMessage", "Writing new message on the queue")
 	n.messages <- (MessageWrapper{
 		Action:  "send",
 		Message: msg,
@@ -164,11 +170,10 @@ func (n Net) writeMessage(msg Message) {
 }
 
 func (n Net) MessageHandler() {
-  utils.Info(n.id, "MessageHandler", "Waiting for new messages")
 	for {
 		wrapperItem := <-n.messages
-		utils.Info(n.id, "MessageHandler", "New message on the queue")
 		var msg = wrapperItem.Message
+    utils.Info(n.id, "MessageHandler", "New message on the queue: " + msg.ToString())
 		if wrapperItem.Action == "send" {
 			utils.Info(n.id, "MessageHandler", "Spreading message on the ring")
 			msg.Send()
@@ -187,13 +192,16 @@ func (n Net) MessageHandler() {
 				msg.Send()
 			}
 		}
+    for i:=0; i < NB_SITES; i++ {
+      utils.Error(i, "handler req", n.tab[i].RequestType)
+    }
 	}
 }
 
-func (n Net) sendMessageToServer(msg Message) {
-	utils.Info(n.id, "sendMessageToServer", msg.MessageType)
-	// n.server.send(Message)
-}
+// func (n Net) sendMessageToServer(msg Message) {
+// 	utils.Info(n.id, "sendMessageToServer", msg.MessageType)
+// 	n.server.SendMessage(msg.Content)
+// }
 
 func (n Net) sendMessageFromServer(msg Message) {
 	utils.Info(n.id, "sendMessageFromServer", msg.MessageType)

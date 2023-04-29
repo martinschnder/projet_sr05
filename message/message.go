@@ -2,6 +2,7 @@ package message
 
 import (
 	"fmt"
+	"projet/utils"
 	"strconv"
 	"strings"
 )
@@ -43,6 +44,7 @@ func (msg Message) ToString() string {
 }
 
 func (msg Message) Send() {
+  utils.Info(msg.From, "SendMessage", "Sending message")
   fmt.Printf(msg.ToString())
 }
 
@@ -79,4 +81,9 @@ func ParseCommand(raw string) Command {
 		content,
 	}
 	return command
+}
+
+func (command Command) ToString() string {
+	formatted_str := fmt.Sprintf(",=line=%d,=action=%s,=message=%s\n", command.Line, command.Action, command.Content)
+	return formatted_str
 }
