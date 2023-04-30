@@ -53,7 +53,7 @@ func (server *Server)Send() {
     if (server.socket == nil ) {
          utils.Error(server.id, "ws_send", "websocket non ouverte")
     } else {
-        err := server.socket.WriteJSON(&server.data)
+        err := server.socket.WriteJSON(server.data)
         if err != nil {
             utils.Error(server.id, "ws_send", "Error message : " + string(err.Error()))
         } else {
@@ -92,17 +92,18 @@ func (server *Server)EditData(command Command) {
   utils.Error(server.id, "EditData", "enter fct" )
   utils.Error(server.id, "Command", command.ToString())
   switch command.Action {
-  case "Replace":
-    server.data[command.Line] = command.Content
-  case "Add":
-    server.data[command.Line] += command.Content
-  case "Remove":
-    server.data[command.Line] = ""
+  case "Remplacer":
+    server.data[command.Line - 1] = command.Content
+  case "Ajouter":
+    server.data[command.Line - 1] += command.Content
+  case "Supprimer":
+    server.data[command.Line - 1] = ""
 }
-  array := fmt.Sprint(server.data)
-  utils.Error(server.id, "EditData", array )
+  array := fmt.Sprint(server.data[0])
+  utils.Error(server.id, "EditData", array)
 
-  server.forwardEdition(command)
+  // server.forwardEdition(command)
+  // server.net.receiveCSRelease()
   server.Send()
 }
 
@@ -127,6 +128,8 @@ func (server *Server)SendMessage(action string) {
     utils.Info(server.id, "ServSendMessage", "OkCs received" )
     // Request accepted
     server.EditData(server.command)
+    server.forwardEdition(server.command)
+    server.net.receiveCSRelease()
   } else {
     // Incoming command from another site
     command := ParseCommand(action)

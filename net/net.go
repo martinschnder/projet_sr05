@@ -71,7 +71,7 @@ func (n *Net) receiveCSRelease() {
 		Stamp:       n.clock,
 		MessageType: "ReleaseMessage",
 	}
-	n.writeMessage(msg)
+	go n.writeMessage(msg)
 }
 
 func (n *Net) receiveExternalMessage(msg Message) {
@@ -82,6 +82,8 @@ func (n *Net) receiveExternalMessage(msg Message) {
 		n.receiveReleaseMessage(msg)
 	case "AckMessage":
 		n.receiveAckMessage(msg)
+  case "EditMessage":
+    n.server.SendMessage(msg.Content)
 	}
 }
 
@@ -110,15 +112,17 @@ func (n *Net) receiveRequestMessage(received_msg Message) {
 func (n *Net) isLastRequest() bool {
 	for i := 0; i < NB_SITES; i++ {
 		if i != n.id {
-			if n.tab[i].Stamp < n.tab[n.id].Stamp {
-        		utils.Warning(n.id, "isLastRequest", "false")
-				return false
-			} else if n.tab[i].Stamp == n.tab[n.id].Stamp {
-				if i < n.id {
-          			utils.Warning(n.id, "isLastRequest", "false")
-					return false
-				}
-			}
+      if n.tab[i].RequestType == "Request" {
+        if n.tab[i].Stamp < n.tab[n.id].Stamp {
+              utils.Warning(n.id, "isLastRequest", "false")
+          return false
+        } else if n.tab[i].Stamp == n.tab[n.id].Stamp {
+          if i < n.id {
+                  utils.Warning(n.id, "isLastRequest", "false")
+            return false
+          }
+        }
+      }
 		}
 	}
   utils.Warning(n.id, "isLastRequest", "true")
