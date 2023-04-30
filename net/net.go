@@ -5,6 +5,7 @@ import (
 	. "projet/message"
 	"projet/utils"
 	. "projet/utils"
+	// "time"
 )
 
 const NB_SITES = 3
@@ -148,8 +149,8 @@ func (n *Net) receiveAckMessage(msg Message) {
 	}
   utils.Warning(n.id, "receiveAckMessage", "request : " + n.tab[n.id].RequestType)
 	if n.tab[n.id].RequestType == "access" && n.isLastRequest() {
-    n.server.SendMessage("OkCs")
     utils.Info(n.id, "MessageHandler", "Sending OkCs to server")
+    n.server.SendMessage("OkCs")
 	}
 }
 
@@ -157,7 +158,7 @@ func (n *Net) ReadMessage() {
 	var raw string
 	for {
 		fmt.Scanln(&raw)
-    	utils.Info(n.id, "ReadMessage", "Detected new message")
+    utils.Info(n.id, "ReadMessage", "Detected new message : " + raw)
 		var msg = MessageFromString(raw)
 		if msg.From != n.id {
 			n.messages <- MessageWrapper{
@@ -195,13 +196,13 @@ func (n *Net) MessageHandler() {
 				msg.Send()
 			} else { // message not for us
 				// forward the message
-        		utils.Info(n.id, "MessageHandler", "Handler forwarding the message")
+        utils.Info(n.id, "MessageHandler", "Handler forwarding the message")
 				msg.Send()
 			}
 		}
-
     array := fmt.Sprint(n.tab)
     utils.Error(00, "mhand", array)
+		// time.Sleep(time.Duration(1) * time.Second)
 	}
 }
 
@@ -212,5 +213,5 @@ func (n *Net) MessageHandler() {
 
 func (n *Net) SendMessageFromServer(msg Message) {
 	utils.Info(n.id, "SendMessageFromServer", msg.MessageType)
-	n.writeMessage(msg)
+	go n.writeMessage(msg)
 }

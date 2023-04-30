@@ -73,7 +73,7 @@ func ParseCommand(raw string) Command {
 	}
 	line, _ := strconv.Atoi(dict["line"])
 	action := dict["action"]
-	content := dict["message"]
+	content := strings.Replace(dict["message"], "$_", " ", -1)
 
 	command := Command {
 		line,
@@ -84,6 +84,7 @@ func ParseCommand(raw string) Command {
 }
 
 func (command Command) ToString() string {
-	formatted_str := fmt.Sprintf(",=line=%d,=action=%s,=message=%s\n", command.Line, command.Action, command.Content)
+  formatted_content := strings.Replace(command.Content, " ", "$_", -1) 
+	formatted_str := fmt.Sprintf(";/line/%d;/action/%s;/message/%s", command.Line, command.Action, formatted_content)
 	return formatted_str
 }

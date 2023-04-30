@@ -90,6 +90,7 @@ func (server *Server)receive() {
 
 func (server *Server)EditData(command Command) {
   utils.Error(server.id, "EditData", "enter fct" )
+  utils.Error(server.id, "Command", command.ToString())
   switch command.Action {
   case "Replace":
     server.data[command.Line] = command.Content
