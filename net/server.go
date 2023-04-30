@@ -98,18 +98,17 @@ func (server *Server)EditData(command Command) {
   case "Remove":
     server.data[command.Line] = ""
 }
-  server.forwardEdition(command)
-
   array := fmt.Sprint(server.data)
   utils.Error(server.id, "EditData", array )
 
+  server.forwardEdition(command)
   server.Send()
 }
 
 func (server *Server)forwardEdition(command Command) {
   utils.Error(server.id, "forwardEdition", "enter fct" )
 
-  server.net.sendMessageFromServer(Message{
+  server.net.SendMessageFromServer(Message{
     From: server.net.id,
     To: -1,
     Content: command.ToString(),

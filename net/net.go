@@ -23,6 +23,12 @@ func NewNet(id int, port string, addr string) *Net {
 	n.clock = 0
 	var tab [NB_SITES]Request
 	n.tab = tab
+	for i := 0; i < NB_SITES; i++ {
+		n.tab[i] = Request{
+			RequestType: "release",
+			Stamp:       0,
+		}
+	}
 	n.server = NewServer(port, addr, id, n)
   	utils.Info(n.id, "NewNet", "Successfully created server instance")
 	n.messages = make(chan MessageWrapper)
@@ -163,7 +169,7 @@ func (n *Net) ReadMessage() {
 }
 
 func (n *Net) writeMessage(msg Message) {
-		// utils.Info(n.id, "WriteMessage", "Writing new message on the queue")
+	utils.Info(n.id, "WriteMessage", "Writing new message on the queue")
 	n.messages <- (MessageWrapper{
 		Action:  "send",
 		Message: msg,
@@ -204,7 +210,7 @@ func (n *Net) MessageHandler() {
 // 	n.server.SendMessage(msg.Content)
 // }
 
-func (n *Net) sendMessageFromServer(msg Message) {
-	utils.Info(n.id, "sendMessageFromServer", msg.MessageType)
+func (n *Net) SendMessageFromServer(msg Message) {
+	utils.Info(n.id, "SendMessageFromServer", msg.MessageType)
 	n.writeMessage(msg)
 }
