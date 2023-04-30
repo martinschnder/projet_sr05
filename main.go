@@ -11,7 +11,7 @@ func main() {
 	port := flag.String("port", "4444", "n° de port")
 	addr := flag.String("addr", "localhost", "nom/adresse machine")
 	flag.Parse()
-	var app = *NewNet(*siteId, *port, *addr)
+	var app = NewNet(*siteId, *port, *addr)
 	go app.ReadMessage()
 	go app.MessageHandler()
 	for {

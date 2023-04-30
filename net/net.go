@@ -14,7 +14,7 @@ type Net struct {
 	clock    int
 	tab      [NB_SITES]Request
 	messages chan MessageWrapper
-	server   Server
+	server   *Server
 }
 
 func NewNet(id int, port string, addr string) *Net {
@@ -23,22 +23,23 @@ func NewNet(id int, port string, addr string) *Net {
 	n.clock = 0
 	var tab [NB_SITES]Request
 	n.tab = tab
-	n.server = *NewServer(port, addr, id, n)
-  utils.Info(n.id, "NewNet", "Successfully created server instance")
+	n.server = NewServer(port, addr, id, n)
+  	utils.Info(n.id, "NewNet", "Successfully created server instance")
 	n.messages = make(chan MessageWrapper)
 	return n
 }
 
-func (n Net) ReceiveCSrequest() {
+func (n *Net) ReceiveCSrequest() {
   utils.Info(n.id, "ReceiveCSRequest", "received cs request from server")
 	n.clock += 1
 	n.tab[n.id] = Request{
 		RequestType: "access",
 		Stamp:       n.clock,
 	}
-  for i:=0; i < NB_SITES; i++ {
-    utils.Error(i, "request state", n.tab[i].RequestType)
-  }
+
+	array := fmt.Sprint(n.tab)
+    utils.Error(00, "req recCS", array)
+
 	msg := Message{
 		From:        n.id,
 		To:          -1,
@@ -49,7 +50,7 @@ func (n Net) ReceiveCSrequest() {
 	n.writeMessage(msg)
 }
 
-func (n Net) receiveCSRelease() {
+func (n *Net) receiveCSRelease() {
 	n.clock += 1
 	n.tab[n.id] = Request{
 		RequestType: "release",
@@ -66,7 +67,7 @@ func (n Net) receiveCSRelease() {
 	n.writeMessage(msg)
 }
 
-func (n Net) receiveExternalMessage(msg Message) {
+func (n *Net) receiveExternalMessage(msg Message) {
 	switch msg.MessageType {
 	case "LockRequestMessage":
 		n.receiveRequestMessage(msg)
@@ -77,7 +78,7 @@ func (n Net) receiveExternalMessage(msg Message) {
 	}
 }
 
-func (n Net) receiveRequestMessage(received_msg Message) {
+func (n *Net) receiveRequestMessage(received_msg Message) {
   utils.Info(n.id, "receiveRequestMessage", "Received request message")
 	n.clock = Max(n.clock, received_msg.Stamp) + 1
 	n.tab[received_msg.From] = Request{
@@ -99,15 +100,15 @@ func (n Net) receiveRequestMessage(received_msg Message) {
 	}
 }
 
-func (n Net) isLastRequest() bool {
+func (n *Net) isLastRequest() bool {
 	for i := 0; i < NB_SITES; i++ {
 		if i != n.id {
 			if n.tab[i].Stamp < n.tab[n.id].Stamp {
-        utils.Warning(n.id, "isLastRequest", "false")
+        		utils.Warning(n.id, "isLastRequest", "false")
 				return false
 			} else if n.tab[i].Stamp == n.tab[n.id].Stamp {
 				if i < n.id {
-          utils.Warning(n.id, "isLastRequest", "false")
+          			utils.Warning(n.id, "isLastRequest", "false")
 					return false
 				}
 			}
@@ -117,7 +118,7 @@ func (n Net) isLastRequest() bool {
 	return true
 }
 
-func (n Net) receiveReleaseMessage(msg Message) {
+func (n *Net) receiveReleaseMessage(msg Message) {
   utils.Info(n.id, "receiveReleaseMessage", "Received release message")
 	n.clock = Max(n.clock, msg.Stamp) + 1
 	n.tab[msg.From] = Request{
@@ -130,7 +131,7 @@ func (n Net) receiveReleaseMessage(msg Message) {
 	}
 }
 
-func (n Net) receiveAckMessage(msg Message) {
+func (n *Net) receiveAckMessage(msg Message) {
   utils.Info(n.id, "MessageHandler", "Received ack message")
 	n.clock = Max(n.clock, msg.Stamp) + 1
 	if n.tab[msg.From].RequestType == "release" {
@@ -146,11 +147,11 @@ func (n Net) receiveAckMessage(msg Message) {
 	}
 }
 
-func (n Net) ReadMessage() {
+func (n *Net) ReadMessage() {
 	var raw string
 	for {
 		fmt.Scanln(&raw)
-    utils.Info(n.id, "ReadMessage", "Detected new message")
+    	utils.Info(n.id, "ReadMessage", "Detected new message")
 		var msg = MessageFromString(raw)
 		if msg.From != n.id {
 			n.messages <- MessageWrapper{
@@ -161,7 +162,7 @@ func (n Net) ReadMessage() {
 	}
 }
 
-func (n Net) writeMessage(msg Message) {
+func (n *Net) writeMessage(msg Message) {
 		// utils.Info(n.id, "WriteMessage", "Writing new message on the queue")
 	n.messages <- (MessageWrapper{
 		Action:  "send",
@@ -169,32 +170,32 @@ func (n Net) writeMessage(msg Message) {
 	})
 }
 
-func (n Net) MessageHandler() {
+func (n *Net) MessageHandler() {
 	for {
 		wrapperItem := <-n.messages
 		var msg = wrapperItem.Message
-    utils.Info(n.id, "MessageHandler", "New message on the queue: " + msg.ToString())
+    	utils.Info(n.id, "MessageHandler", "New message on the queue: " + msg.ToString())
 		if wrapperItem.Action == "send" {
 			utils.Info(n.id, "MessageHandler", "Spreading message on the ring")
 			msg.Send()
 		} else if wrapperItem.Action == "process" {
 			if msg.To == n.id {
-        utils.Info(n.id, "MessageHandler", "Handler processing the message")
+        		utils.Info(n.id, "MessageHandler", "Handler processing the message")
 				n.receiveExternalMessage(msg)
 			} else if msg.To == -1 && msg.From != n.id { // message for all
 				// process and spread the message on the ring
-        utils.Info(n.id, "MessageHandler", "Handler processing and sending the message")
+        		utils.Info(n.id, "MessageHandler", "Handler processing and sending the message")
 				n.receiveExternalMessage(msg)
 				msg.Send()
 			} else { // message not for us
 				// forward the message
-        utils.Info(n.id, "MessageHandler", "Handler forwarding the message")
+        		utils.Info(n.id, "MessageHandler", "Handler forwarding the message")
 				msg.Send()
 			}
 		}
-    for i:=0; i < NB_SITES; i++ {
-      utils.Error(i, "handler req", n.tab[i].RequestType)
-    }
+
+    array := fmt.Sprint(n.tab)
+    utils.Error(00, "mhand", array)
 	}
 }
 
@@ -203,7 +204,7 @@ func (n Net) MessageHandler() {
 // 	n.server.SendMessage(msg.Content)
 // }
 
-func (n Net) sendMessageFromServer(msg Message) {
+func (n *Net) sendMessageFromServer(msg Message) {
 	utils.Info(n.id, "sendMessageFromServer", msg.MessageType)
 	n.writeMessage(msg)
 }

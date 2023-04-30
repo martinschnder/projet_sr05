@@ -6,6 +6,7 @@ import (
 	"projet/utils"
 	"sync"
 	"github.com/gorilla/websocket"
+  "fmt"
 )
 
 type Server struct {
@@ -33,7 +34,7 @@ func NewServer(port string, addr string, id int, net *Net) *Server {
   return server
 }
 
-func (server Server)createSocket(w http.ResponseWriter, r *http.Request) {
+func (server *Server)createSocket(w http.ResponseWriter, r *http.Request) {
     var upgrader = websocket.Upgrader{
         CheckOrigin : func(r *http.Request) bool { return true },
     }
@@ -48,7 +49,7 @@ func (server Server)createSocket(w http.ResponseWriter, r *http.Request) {
     server.Send()
 }
 
-func (server Server)Send() {
+func (server *Server)Send() {
     if (server.socket == nil ) {
          utils.Error(server.id, "ws_send", "websocket non ouverte")
     } else {
@@ -61,12 +62,12 @@ func (server Server)Send() {
     }
 }
 
-func (server Server)closeSocket() {
+func (server *Server)closeSocket() {
     utils.Info(server.id, "ws_close", "Fin des réceptions => fermeture de la websocket")
     server.socket.Close()
 }
 
-func (server Server)receive() {
+func (server *Server)receive() {
     defer server.closeSocket()
     for {
         _, rcvmsg, err := server.socket.ReadMessage()
@@ -74,9 +75,9 @@ func (server Server)receive() {
             utils.Error(server.id, "ws_receive", "ReadMessage : " + string(err.Error()))
             break
         }
-        for i:=0; i < NB_SITES; i++ {
-          utils.Error(i, "request state", server.net.tab[i].RequestType)
-        }
+        array := fmt.Sprint(server.net.tab)
+        utils.Error(00, "req recSERV", array)
+        
         server.mutex.Lock()
         command := ParseCommand(string(rcvmsg))
         server.command = command
@@ -87,7 +88,8 @@ func (server Server)receive() {
     }
 }
 
-func (server Server)EditData(command Command) {
+func (server *Server)EditData(command Command) {
+  utils.Error(server.id, "EditData", "enter fct" )
   switch command.Action {
   case "Replace":
     server.data[command.Line] = command.Content
@@ -97,10 +99,16 @@ func (server Server)EditData(command Command) {
     server.data[command.Line] = ""
 }
   server.forwardEdition(command)
+
+  array := fmt.Sprint(server.data)
+  utils.Error(server.id, "EditData", array )
+
   server.Send()
 }
 
-func (server Server)forwardEdition(command Command) {
+func (server *Server)forwardEdition(command Command) {
+  utils.Error(server.id, "forwardEdition", "enter fct" )
+
   server.net.sendMessageFromServer(Message{
     From: server.net.id,
     To: -1,
@@ -108,11 +116,15 @@ func (server Server)forwardEdition(command Command) {
     Stamp: server.net.clock,
     MessageType: "EditMessage",
   })
+
+  utils.Error(server.id, "forwardEdition", "fini fct" )
+
 }
 
 // Used by net to send a message to server
-func (server Server)SendMessage(action string) {
+func (server *Server)SendMessage(action string) {
   if action == "OkCs" {
+    utils.Info(server.id, "ServSendMessage", "OkCs received" )
     // Request accepted
     server.EditData(server.command)
   } else {
