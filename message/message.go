@@ -74,6 +74,10 @@ func (msg Message) ToString() string {
 	return formatted_str
 }
 
+func (msg Message) ConcernSnapshot() bool {
+	return msg.MessageType == "StateMessage" || msg.MessageType == "PrepostMessage" || msg.MessageType == "EndSnapshotMessage"
+}
+
 func (msg Message) Send() {
   utils.Info(msg.From, "SendMessage", "Sending message")
   fmt.Printf(msg.ToString())
