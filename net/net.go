@@ -306,7 +306,7 @@ func (n *Net) MessageHandler() {
 				msg.Send()
 			} else { // message not for us
 				// forward the message
-        utils.Info(n.id, "MessageHandler", "Handler forwarding the message")
+        		utils.Info(n.id, "MessageHandler", "Handler forwarding the message")
 				msg.Send()
 			}
 		}
@@ -327,7 +327,7 @@ func (n *Net) SendMessageFromServer(msg Message) {
 func (n *Net) InitSnapshot() {
 	n.color = "red"
 	n.initator = true
-	n.globalStates[n.id] = *n.state
+	n.globalStates[n.id] = *n.state // TODO: append to the list (j'ai limpression que globalstates prend un pointeur au lieu de faire une copie dans le snapshot final)
 	n.nbExpectedStates = NB_SITES - 1
 	n.nbExpectedMessages = n.state.Review
 
