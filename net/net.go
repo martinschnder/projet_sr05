@@ -222,7 +222,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 		utils.Info(n.id, "receiveStateMessage", str)
 
 		if (n.nbExpectedStates == 0 && n.nbExpectedMessages == 0) {
-			utils.Info(n.id, "receiveStateMessage", "Finish snapshot")
+			utils.Warning(n.id, "receiveStateMessage", "Finish snapshot")
 
 			file, _ := json.MarshalIndent(n.globalStates, "", " ")
 			_ = ioutil.WriteFile("test.json", file, 0644)
@@ -231,7 +231,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 		}
 	} else {
 		utils.Info(n.id, "receiveStateMessage", "not initiator, msg resend")
-		n.writeMessage(msg)
+		go n.writeMessage(msg)
 	}
   }
 
@@ -247,7 +247,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 		utils.Info(n.id, "receivePrepostMessage", str)
 
 		if (n.nbExpectedStates == 0 && n.nbExpectedMessages == 0) {
-			utils.Info(n.id, "receivePrepostMessage", "Finish snapshot")
+			utils.Warning(n.id, "receivePrepostMessage", "Finish snapshot")
 
 			file, _ := json.MarshalIndent(n.globalStates, "", " ")
 			_ = ioutil.WriteFile("test.json", file, 0644)
@@ -256,7 +256,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 		}
 	} else {
 		utils.Info(n.id, "receivePrepostMessage", "not initiator, msg resend")
-		n.writeMessage(msg)
+		go n.writeMessage(msg)
 	}
   }
 
