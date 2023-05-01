@@ -18,7 +18,6 @@ func Info(id int, where string, what string) {
 }
 
 func Warning(id int, where string, what string) {
-
 	stderr.Printf("%s * [%d %d] %-8.8s : %s\n%s", orange, id, pid, where, what, raz)
 }
 

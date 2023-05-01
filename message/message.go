@@ -17,6 +17,9 @@ type Message struct {
 	Color       string
 }
 
+/** MessageFromString()
+Construit un message à partir d'une chaine de caractères
+**/
 func MessageFromString(raw string) Message {
 	dict := make(map[string]string)
 	keyVals := strings.Split(raw[1:], raw[0:1])
@@ -44,6 +47,9 @@ func MessageFromString(raw string) Message {
 	return msg
 }
 
+/** vectClockToString()
+Transforme une horloge vectorielle en chaîne de caractères
+**/
 func vectClockToString(vectClock []int) string {
 	formatted_str := "#"
 	for i := 0; i < len(vectClock); i++ {
@@ -52,6 +58,9 @@ func vectClockToString(vectClock []int) string {
 	return formatted_str
 }
 
+/** vectClockToArray()
+Transforme une chaîne de caractères en horloge vectorielle
+**/
 func vectClockToArray(raw string) []int {
 	var vectClock = []int{}
 
@@ -69,15 +78,24 @@ func vectClockToArray(raw string) []int {
 	return vectClock
 }
 
+/** ToString()
+Transforme un message en chaîne de caractères
+**/
 func (msg Message) ToString() string {
 	formatted_str := fmt.Sprintf("|=From=%d|=To=%d|=Content=%s|=Stamp=%d|=MessageType=%s|=VectClock=%s|=Color=%s\n", msg.From, msg.To, msg.Content, msg.Stamp, msg.MessageType, vectClockToString(msg.VectClock), msg.Color)
 	return formatted_str
 }
 
+/** ConcernSnapshot()
+Renvoie vrai si le message a un lien avec le Snapshot
+**/
 func (msg Message) ConcernSnapshot() bool {
 	return msg.MessageType == "StateMessage" || msg.MessageType == "PrepostMessage"
 }
 
+/** Send()
+Ecriture sur la sortie standard (pour être lu par un autre programme)
+**/
 func (msg Message) Send() {
 	fmt.Printf(msg.ToString())
 }
@@ -98,6 +116,9 @@ type Command struct {
 	Content string
 }
 
+/** ParseCommand
+Parse une commande pour renvoyer un objet Commande
+**/
 func ParseCommand(raw string) Command {
 	dict := make(map[string]string)
 	keyVals := strings.Split(raw[1:], raw[0:1])
@@ -117,6 +138,9 @@ func ParseCommand(raw string) Command {
 	return command
 }
 
+/** ToString()
+Transforme une commande en chaîne de caractères
+**/
 func (command Command) ToString() string {
 	formatted_content := strings.Replace(command.Content, " ", "$_", -1)
 	formatted_str := fmt.Sprintf("~/line/%d~/action/%s~/message/%s", command.Line, command.Action, formatted_content)
@@ -141,7 +165,9 @@ func NewState(id int, text []string, nbSites int) *State {
 	state.Review = 0
 	return state
 }
-
+/** VectClockIncr()
+Incrémentation de l'horloge vectorielle
+**/
 func (s *State) VectClockIncr(otherClock []int, nbSites int) {
 	s.VectClock[s.Id] += 1
 	for i := 0; i < nbSites; i++ {
@@ -149,11 +175,17 @@ func (s *State) VectClockIncr(otherClock []int, nbSites int) {
 	}
 }
 
+/** ToString()
+Transforme un état en chaîne de caractères
+**/
 func (s *State) ToString() string {
 	formatted_str := fmt.Sprintf("~/Id/%d~/VectClock/%s~/Text/%s~/Review/%d", s.Id, vectClockToString(s.VectClock), textToString(s.Text), s.Review)
 	return formatted_str
 }
 
+/** textToString()
+Transforme un tableau de chaînes de caractères en une chaîne de caractères
+**/
 func textToString(text []string) string {
 	formatted_str := "#"
 	for i := 0; i < len(text); i++ {
@@ -163,6 +195,9 @@ func textToString(text []string) string {
 	return formatted_str
 }
 
+/** textFromString()
+Reconstruit un tableau de chaînes de caractères
+**/
 func textFromString(raw string) []string {
 	text := strings.Split(raw[1:], raw[0:1])
 	text = text[0 : len(text)-1]
@@ -174,6 +209,9 @@ func textFromString(raw string) []string {
 	return text
 }
 
+/** textFromString()
+Reconstruit un état à partir d'une chaîne de caractères
+**/
 func StateFromString(raw string) State {
 	dict := make(map[string]string)
 	keyVals := strings.Split(raw[1:], raw[0:1])
