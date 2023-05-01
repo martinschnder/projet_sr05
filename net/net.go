@@ -75,7 +75,11 @@ func (n *Net) receiveCSRelease() {
 		RequestType: "release",
 		Stamp:       n.clock,
 	}
-  utils.Info(n.id, "MessageHandler", "Server CS release received")
+  	utils.Info(n.id, "MessageHandler", "Server CS release received")
+  	n.tab[n.id] = Request{
+		RequestType: "release",
+		Stamp:       n.clock,
+	}
 	msg := Message{
 		From:        n.id,
 		To:          -1,
@@ -129,31 +133,33 @@ func (n *Net) receiveRequestMessage(received_msg Message) {
 	}
   utils.Info(n.id, "receiveRequestMessage", "Sending Ack message")
 	go n.writeMessage(msg)
-	if n.tab[n.id].RequestType == "access" && n.isLastRequest() {
+	if n.tab[n.id].RequestType == "access" && n.isValidRequest() {
     n.server.SendMessage("OkCs")
     utils.Info(n.id, "MessageHandler", "Sending OkCs to server")
 	}
 }
 
-func (n *Net) isLastRequest() bool {
+func (n *Net) isValidRequest() bool {
+	// Verify that every site aknowledged the LockRequest
 	for i := 0; i < NB_SITES; i++ {
 		if i != n.id {
-      if n.tab[i].RequestType == "Request" {
-        if n.tab[i].Stamp < n.tab[n.id].Stamp {
-              utils.Warning(n.id, "isLastRequest", "false")
-          return false
-        } else if n.tab[i].Stamp == n.tab[n.id].Stamp {
-          if i < n.id {
-                  utils.Warning(n.id, "isLastRequest", "false")
-            return false
-          }
-        }
-      }
+			if n.tab[i].RequestType == "ack" {
+				// At least one AckMessage is older than the LockRequest
+				if n.tab[i].Stamp <= n.tab[n.id].Stamp {
+					utils.Warning(n.id, "isValidRequest", "false")
+					return false
+				}
+			} else {
+				// Everyone did not send AckMessage
+				utils.Warning(n.id, "isValidRequest", "false")
+				return false
+			}
 		}
 	}
-  utils.Warning(n.id, "isLastRequest", "true")
+  utils.Warning(n.id, "isValidRequest", "true")
 	return true
 }
+
 
 func (n *Net) receiveReleaseMessage(msg Message) {
   utils.Info(n.id, "receiveReleaseMessage", "Received release message")
@@ -162,7 +168,7 @@ func (n *Net) receiveReleaseMessage(msg Message) {
 		RequestType: "release",
 		Stamp:       msg.Stamp,
 	}
-	if n.tab[n.id].RequestType == "access" && n.isLastRequest() {
+	if n.tab[n.id].RequestType == "access" && n.isValidRequest() {
     n.server.SendMessage("OkCs")
     utils.Info(n.id, "MessageHandler", "Sending OkCs to server")
 	}
@@ -178,7 +184,7 @@ func (n *Net) receiveAckMessage(msg Message) {
 		}
 	}
   utils.Warning(n.id, "receiveAckMessage", "request : " + n.tab[n.id].RequestType)
-	if n.tab[n.id].RequestType == "access" && n.isLastRequest() {
+	if n.tab[n.id].RequestType == "access" && n.isValidRequest() {
     utils.Info(n.id, "MessageHandler", "Sending OkCs to server")
     n.server.SendMessage("OkCs")
 	}
