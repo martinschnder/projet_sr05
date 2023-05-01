@@ -23,7 +23,7 @@ type Net struct {
 	nbExpectedStates int
 	nbExpectedMessages int
 	state 	*State
-	globalStates [NB_SITES]State
+	globalStates [NB_SITES]State // TODO : ça doit etre une liste quelconque
 }
 
 func NewNet(id int, port string, addr string) *Net {
@@ -190,7 +190,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 		utils.Error(n.id, "receiveSnapshotMessage", "SNAPSHOT MODE")
 
 		n.color = "red"
-		n.globalStates[n.id] = *n.state
+		n.globalStates[n.id] = *n.state // TODO : append à la liste
 		msg := Message{
 			From:        n.id,
 			To:          -1,
@@ -214,7 +214,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 	utils.Info(n.id, "receiveStateMessage", "Received state message")
 	state := StateFromString(msg.Content)
 	if (n.initator) {
-		n.globalStates[state.Id] = state
+		n.globalStates[state.Id] = state // TODO : append à la liste
 		n.nbExpectedStates -= 1
 		n.nbExpectedMessages += state.Review
 
@@ -239,21 +239,23 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 	utils.Info(n.id, "receivePrepostMessage", "Received prepost message")
 	if (n.initator) {
 		n.nbExpectedMessages -= 1
+
+		// TODO : append msg à la liste globalStates
 		utils.Error(n.id, "receivePrepostMessage", "concat msg prepost")
 
 		str := fmt.Sprintf("%d states and %d prepost messages to wait to finish the snapshot", n.nbExpectedStates, n.nbExpectedMessages)
 		utils.Info(n.id, "receivePrepostMessage", str)
 
 		if (n.nbExpectedStates == 0 && n.nbExpectedMessages == 0) {
-			utils.Info(n.id, "receiveStateMessage", "Finish snapshot")
+			utils.Info(n.id, "receivePrepostMessage", "Finish snapshot")
 
 			file, _ := json.MarshalIndent(n.globalStates, "", " ")
 			_ = ioutil.WriteFile("test.json", file, 0644)
-			
+
 			n.initator = false
 		}
 	} else {
-		utils.Info(n.id, "receiveStateMessage", "not initiator, msg resend")
+		utils.Info(n.id, "receivePrepostMessage", "not initiator, msg resend")
 		go n.writeMessage(msg)
 	}
   }
@@ -346,5 +348,5 @@ func (n *Net) InitSnapshot() {
 	// data:= fmt.Sprintf("%+v", msg)
 	// utils.Info(n.id, "InitSnapshot", data)
 
-	go n.writeMessage(msg)
+	n.writeMessage(msg)
 }
