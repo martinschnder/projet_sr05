@@ -5,9 +5,8 @@ import (
 	. "projet/message"
 	"projet/utils"
 	. "projet/utils"
-	"encoding/json"
-	"io/ioutil"
-	// "time"
+	"container/list"
+	"os"
 )
 
 const NB_SITES = 3
@@ -23,7 +22,7 @@ type Net struct {
 	nbExpectedStates int
 	nbExpectedMessages int
 	state 	*State
-	globalStates [NB_SITES]State // TODO : ça doit etre une liste quelconque
+	globalStates *list.List
 }
 
 func NewNet(id int, port string, addr string) *Net {
@@ -46,8 +45,7 @@ func NewNet(id int, port string, addr string) *Net {
 	n.nbExpectedStates = 0
 	n.nbExpectedMessages = 0
 	n.state = NewState(id, n.server.data, NB_SITES)
-	var gStates [NB_SITES]State
-	n.globalStates = gStates
+	n.globalStates = list.New()
 	return n
 }
 
@@ -185,12 +183,13 @@ func (n *Net) receiveAckMessage(msg Message) {
 }
 
 func (n *Net) receiveSnapshotMessage(msg Message) {
+	utils.Error(n.id, "receiveSnapshotMessage", n.color)
 	utils.Info(n.id, "receiveSnapshotMessage", "Received snapshot message")
 	if (msg.Color == "red" && n.color == "white") {
 		utils.Error(n.id, "receiveSnapshotMessage", "SNAPSHOT MODE")
 
 		n.color = "red"
-		n.globalStates[n.id] = *n.state // TODO : append à la liste
+		n.globalStates.PushBack(n.state.ToString())
 		msg := Message{
 			From:        n.id,
 			To:          -1,
@@ -214,7 +213,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 	utils.Info(n.id, "receiveStateMessage", "Received state message")
 	state := StateFromString(msg.Content)
 	if (n.initator) {
-		n.globalStates[state.Id] = state // TODO : append à la liste
+		n.globalStates.PushBack(state.ToString())
 		n.nbExpectedStates -= 1
 		n.nbExpectedMessages += state.Review
 
@@ -224,8 +223,15 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 		if (n.nbExpectedStates == 0 && n.nbExpectedMessages == 0) {
 			utils.Warning(n.id, "receiveStateMessage", "Finish snapshot")
 
-			file, _ := json.MarshalIndent(n.globalStates, "", " ")
-			_ = ioutil.WriteFile("test.json", file, 0644)
+			file, fileErr := os.Create("snapshot.txt")
+			if fileErr != nil {
+				fmt.Println(fileErr)
+				return
+			}
+
+			for i := n.globalStates.Front(); i != nil; i = i.Next() {
+				fmt.Fprintf(file, "%+v\n", i.Value)
+			}
 
 			n.initator = false
 		}
@@ -240,8 +246,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 	if (n.initator) {
 		n.nbExpectedMessages -= 1
 
-		// TODO : append msg à la liste globalStates
-		utils.Error(n.id, "receivePrepostMessage", "concat msg prepost")
+		n.globalStates.PushBack(msg.ToString())
 
 		str := fmt.Sprintf("%d states and %d prepost messages to wait to finish the snapshot", n.nbExpectedStates, n.nbExpectedMessages)
 		utils.Info(n.id, "receivePrepostMessage", str)
@@ -249,8 +254,15 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 		if (n.nbExpectedStates == 0 && n.nbExpectedMessages == 0) {
 			utils.Warning(n.id, "receivePrepostMessage", "Finish snapshot")
 
-			file, _ := json.MarshalIndent(n.globalStates, "", " ")
-			_ = ioutil.WriteFile("test.json", file, 0644)
+			file, fileErr := os.Create("snapshot.txt")
+			if fileErr != nil {
+				fmt.Println(fileErr)
+				return
+			}
+
+			for i := n.globalStates.Front(); i != nil; i = i.Next() {
+				fmt.Fprintf(file, "%+v\n", i.Value)
+			}
 
 			n.initator = false
 		}
@@ -300,10 +312,12 @@ func (n *Net) MessageHandler() {
 				n.state.Review -= 1
 				n.receiveExternalMessage(msg)
 			} else if msg.To == -1 && msg.From != n.id { // message for all
-				// process and spread the message on the ring
-        		utils.Info(n.id, "MessageHandler", "Handler processing and sending the message")
+				// process and spread the message on the ring if it doesn't concern the snapshot
+				if msg.MessageType != "StateMessage" && msg.MessageType != "PrepostMessage" {
+					utils.Info(n.id, "MessageHandler", "Handler processing and sending the message")
+					msg.Send()
+				}
 				n.receiveExternalMessage(msg)
-				msg.Send()
 			} else { // message not for us
 				// forward the message
         		utils.Info(n.id, "MessageHandler", "Handler forwarding the message")
@@ -327,11 +341,11 @@ func (n *Net) SendMessageFromServer(msg Message) {
 func (n *Net) InitSnapshot() {
 	n.color = "red"
 	n.initator = true
-	n.globalStates[n.id] = *n.state // TODO: append to the list (j'ai limpression que globalstates prend un pointeur au lieu de faire une copie dans le snapshot final)
+	n.globalStates.PushBack(n.state.ToString()) 
 	n.nbExpectedStates = NB_SITES - 1
 	n.nbExpectedMessages = n.state.Review
 
-	utils.Info(n.id, "InitSnapshot", "Snapshot initialisation")
+	utils.Error(n.id, "InitSnapshot", "Snapshot initialisation")
 	str := fmt.Sprintf("%d states and %d prepost messages to wait to finish the snapshot", n.nbExpectedStates, n.nbExpectedMessages)
 	utils.Info(n.id, "receivePrepostMessage", str)
 
