@@ -45,9 +45,9 @@ func MessageFromString(raw string) Message {
 }
 
 func vectClockToString(vectClock []int) string {
-	formatted_str := "~"
+	formatted_str := "#"
 	for i := 0; i < len(vectClock); i++ {
-		formatted_str += strconv.Itoa(vectClock[i]) + "~"
+		formatted_str += strconv.Itoa(vectClock[i]) + "#"
 	}
 	return formatted_str
 }
@@ -70,7 +70,7 @@ func vectClockToArray(raw string) []int {
 }
 
 func (msg Message) ToString() string {
-	formatted_str := fmt.Sprintf(",=From=%d,=To=%d,=Content=%s,=Stamp=%d,=MessageType=%s,=VectClock=%s,=Color=%s\n", msg.From, msg.To, msg.Content, msg.Stamp, msg.MessageType, vectClockToString(msg.VectClock), msg.Color)
+	formatted_str := fmt.Sprintf("|=From=%d|=To=%d|=Content=%s|=Stamp=%d|=MessageType=%s|=VectClock=%s|=Color=%s\n", msg.From, msg.To, msg.Content, msg.Stamp, msg.MessageType, vectClockToString(msg.VectClock), msg.Color)
 	return formatted_str
 }
 
@@ -116,7 +116,7 @@ func ParseCommand(raw string) Command {
 
 func (command Command) ToString() string {
   formatted_content := strings.Replace(command.Content, " ", "$_", -1) 
-	formatted_str := fmt.Sprintf(";/line/%d;/action/%s;/message/%s", command.Line, command.Action, formatted_content)
+	formatted_str := fmt.Sprintf("~/line/%d~/action/%s~/message/%s", command.Line, command.Action, formatted_content)
 	return formatted_str
 }
 
@@ -130,6 +130,7 @@ type State struct {
 
   func NewState(id int, text []string, nbSites int) *State {
 	state := new(State)
+	state.Id = id
   	state.VectClock = make([]int, nbSites)
 	for i := 0; i < nbSites; i++ {
 		state.VectClock[i] = 0
@@ -147,17 +148,30 @@ func (s *State)VectClockIncr(otherClock []int, nbSites int) {
 }
 
 func (s *State) ToString() string {
-	  formatted_str := fmt.Sprintf(";/Id/%d;/VectClock/%s;/Text/%s;/Review/%d;", s.Id, vectClockToString(s.VectClock), textToString(s.Text), s.Review)
+	  formatted_str := fmt.Sprintf("~/Id/%d~/VectClock/%s~/Text/%s~/Review/%d", s.Id, vectClockToString(s.VectClock), textToString(s.Text), s.Review)
 	  return formatted_str
   }
 
 
 func textToString(text []string) string {
-	formatted_str := "~"
+	formatted_str := "#"
 	for i := 0; i < len(text); i++ {
-		formatted_str += text[i] + "~"
+		text[i] = strings.Replace(text[i], " ", "$_", -1) 
+		formatted_str += text[i] + "#"
 	}
 	return formatted_str
+}
+
+
+func textFromString(raw string) []string {
+	text := strings.Split(raw[1:], raw[0:1])
+	text = text[0:len(text) - 1]
+
+	for i := 0; i < len(text); i++ {
+		text[i] = strings.Replace(text[i], "$_", " ", -1)
+	}
+
+	return text
 }
 
 func StateFromString(raw string) State {
@@ -169,8 +183,7 @@ func StateFromString(raw string) State {
 	  }
 	  id, _ := strconv.Atoi(dict["Id"])
 	  vectClock := vectClockToArray(dict["VectClock"])
-	  text := strings.Split(raw[1:], raw[0:1])
-	  text = text[0:len(text) - 1]
+	  text := textFromString(dict["Text"])
 	  review, _ := strconv.Atoi(dict["Review"])
   
 	  state := State{

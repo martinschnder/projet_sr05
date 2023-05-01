@@ -92,9 +92,6 @@ func (n *Net) receiveCSRelease() {
 
 func (n *Net) receiveExternalMessage(msg Message) {
 	n.state.VectClockIncr(msg.VectClock, NB_SITES)
-	
-	array := fmt.Sprint(n.state.VectClock)
-	utils.Error(n.id, "receiveExternalMessage", array)
 
 	switch msg.MessageType {
 	case "LockRequestMessage":
@@ -103,10 +100,14 @@ func (n *Net) receiveExternalMessage(msg Message) {
 		n.receiveReleaseMessage(msg)
 	case "AckMessage":
 		n.receiveAckMessage(msg)
-  case "EditMessage":
+ 	case "EditMessage":
     n.server.SendMessage(msg.Content)
-case "SnapshotMessage":
+	case "SnapshotMessage":
     n.receiveSnapshotMessage(msg)
+	case "StateMessage":
+    n.receiveStateMessage(msg)
+	case "PrepostMessage":
+    n.receivePrepostMessage(msg)
 	}
 }
 
@@ -186,6 +187,8 @@ func (n *Net) receiveAckMessage(msg Message) {
 func (n *Net) receiveSnapshotMessage(msg Message) {
 	utils.Info(n.id, "receiveSnapshotMessage", "Received snapshot message")
 	if (msg.Color == "red" && n.color == "white") {
+		utils.Error(n.id, "receiveSnapshotMessage", "SNAPSHOT MODE")
+
 		n.color = "red"
 		n.globalStates[n.id] = *n.state
 		msg := Message{
@@ -197,9 +200,11 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 			VectClock: 	 n.state.VectClock,
 			Color: 		 n.color,
 		}
+		utils.Info(n.id, "receiveSnapshotMessage", "Send state message")
 		go n.writeMessage(msg)
 	}
 	if (msg.Color == "white" && n.color == "red") {
+		utils.Info(n.id, "receiveSnapshotMessage", "Change to prepost message")
 		msg.MessageType = "PrepostMessage"
 		go n.writeMessage(msg)
 	}
@@ -212,12 +217,20 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 		n.globalStates[state.Id] = state
 		n.nbExpectedStates -= 1
 		n.nbExpectedMessages += state.Review
+
+		str := fmt.Sprintf("%d states and %d prepost messages to wait to finish the snapshot", n.nbExpectedStates, n.nbExpectedMessages)
+		utils.Info(n.id, "receiveStateMessage", str)
+
 		if (n.nbExpectedStates == 0 && n.nbExpectedMessages == 0) {
+			utils.Info(n.id, "receiveStateMessage", "Finish snapshot")
+
 			file, _ := json.MarshalIndent(n.globalStates, "", " ")
 			_ = ioutil.WriteFile("test.json", file, 0644)
+
+			n.initator = false
 		}
-		n.initator = false
 	} else {
+		utils.Info(n.id, "receiveStateMessage", "not initiator, msg resend")
 		go n.writeMessage(msg)
 	}
   }
@@ -226,13 +239,21 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 	utils.Info(n.id, "receivePrepostMessage", "Received prepost message")
 	if (n.initator) {
 		n.nbExpectedMessages -= 1
-		utils.Error(n.id, "receivePrepostMessage", "concat prepost")
+		utils.Error(n.id, "receivePrepostMessage", "concat msg prepost")
+
+		str := fmt.Sprintf("%d states and %d prepost messages to wait to finish the snapshot", n.nbExpectedStates, n.nbExpectedMessages)
+		utils.Info(n.id, "receivePrepostMessage", str)
+
 		if (n.nbExpectedStates == 0 && n.nbExpectedMessages == 0) {
+			utils.Info(n.id, "receiveStateMessage", "Finish snapshot")
+
 			file, _ := json.MarshalIndent(n.globalStates, "", " ")
 			_ = ioutil.WriteFile("test.json", file, 0644)
+			
+			n.initator = false
 		}
-		n.initator = false
 	} else {
+		utils.Info(n.id, "receiveStateMessage", "not initiator, msg resend")
 		go n.writeMessage(msg)
 	}
   }
@@ -241,7 +262,7 @@ func (n *Net) ReadMessage() {
 	var raw string
 	for {
 		fmt.Scanln(&raw)
-    utils.Info(n.id, "ReadMessage", "Detected new message : " + raw)
+    	utils.Info(n.id, "ReadMessage", "Detected new message : " + raw)
 		var msg = MessageFromString(raw)
 		if msg.From != n.id {
 			n.messages <- MessageWrapper{
@@ -307,7 +328,10 @@ func (n *Net) InitSnapshot() {
 	n.globalStates[n.id] = *n.state
 	n.nbExpectedStates = NB_SITES - 1
 	n.nbExpectedMessages = n.state.Review
+
 	utils.Info(n.id, "InitSnapshot", "Snapshot initialisation")
+	str := fmt.Sprintf("%d states and %d prepost messages to wait to finish the snapshot", n.nbExpectedStates, n.nbExpectedMessages)
+	utils.Info(n.id, "receivePrepostMessage", str)
 
 	msg := Message{
 		From:        n.id,
@@ -318,5 +342,9 @@ func (n *Net) InitSnapshot() {
 		VectClock: 	 n.state.VectClock,
 		Color: 		 n.color,
 	}
+
+	// data:= fmt.Sprintf("%+v", msg)
+	// utils.Info(n.id, "InitSnapshot", data)
+
 	go n.writeMessage(msg)
 }

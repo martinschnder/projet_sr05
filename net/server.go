@@ -6,7 +6,6 @@ import (
 	"projet/utils"
 	"sync"
 	"github.com/gorilla/websocket"
-  "fmt"
 )
 
 type Server struct {
@@ -25,7 +24,7 @@ func NewServer(port string, addr string, id int, net *Net) *Server {
   server.net = net
   server.mutex = &sync.Mutex{}
   server.data = make([]string, 30)
-  server.data[0] = "Hello, World!"
+  server.data[0] = "Hello World!"
   server.id = id
 
 	go http.HandleFunc("/ws", server.createSocket)
@@ -91,8 +90,6 @@ func (server *Server)receive() {
 }
 
 func (server *Server)EditData(command Command) {
-  utils.Error(server.id, "EditData", "enter fct" )
-  utils.Error(server.id, "Command", command.ToString())
   switch command.Action {
   case "Remplacer":
     server.data[command.Line - 1] = command.Content
@@ -102,10 +99,6 @@ func (server *Server)EditData(command Command) {
     server.data[command.Line - 1] = ""
 }
 
-
-  array := fmt.Sprint(server.data[0])
-  utils.Error(server.id, "EditData", array)
-
   server.net.state.Text = server.data
 
   // server.forwardEdition(command)
@@ -114,8 +107,6 @@ func (server *Server)EditData(command Command) {
 }
 
 func (server *Server)forwardEdition(command Command) {
-  utils.Error(server.id, "forwardEdition", "enter fct" )
-
   server.net.SendMessageFromServer(Message{
     From: server.net.id,
     To: -1,
@@ -123,10 +114,8 @@ func (server *Server)forwardEdition(command Command) {
     Stamp: server.net.clock,
     MessageType: "EditMessage",
     VectClock: 	 server.net.state.VectClock,
+    Color: "white",
   })
-
-  utils.Error(server.id, "forwardEdition", "fini fct" )
-
 }
 
 // Used by net to send a message to server
