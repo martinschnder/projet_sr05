@@ -91,6 +91,30 @@ func (n *Net) receiveCSRelease() {
 func (n *Net) receiveExternalMessage(msg Message) {
 	n.state.VectClockIncr(msg.VectClock, NB_SITES)
 
+	if (msg.Color == "red" && n.color == "white") {
+		utils.Error(n.id, "receiveSnapshotMessage", "SNAPSHOT MODE")
+
+		n.color = "red"
+		n.globalStates.PushBack(n.state.ToString())
+		msg_state := Message{
+			From:        n.id,
+			To:          -1,
+			Content:     n.state.ToString(),
+			Stamp:       n.clock,
+			MessageType: "StateMessage",
+			VectClock: 	 n.state.VectClock,
+			Color: 		 n.color,
+		}
+		utils.Info(n.id, "receiveSnapshotMessage", "Send state message")
+		go n.writeMessage(msg_state)
+	}
+	if (msg.Color == "white" && n.color == "red") {
+		utils.Info(n.id, "receiveSnapshotMessage", "Change to prepost message")
+		msg_prepost := msg
+		msg_prepost.MessageType = "PrepostMessage"
+		go n.writeMessage(msg)
+	}
+
 	switch msg.MessageType {
 	case "LockRequestMessage":
 		n.receiveRequestMessage(msg)
@@ -187,28 +211,6 @@ func (n *Net) receiveAckMessage(msg Message) {
 func (n *Net) receiveSnapshotMessage(msg Message) {
 	utils.Error(n.id, "receiveSnapshotMessage", n.color)
 	utils.Info(n.id, "receiveSnapshotMessage", "Received snapshot message")
-	if (msg.Color == "red" && n.color == "white") {
-		utils.Error(n.id, "receiveSnapshotMessage", "SNAPSHOT MODE")
-
-		n.color = "red"
-		n.globalStates.PushBack(n.state.ToString())
-		msg := Message{
-			From:        n.id,
-			To:          -1,
-			Content:     n.state.ToString(),
-			Stamp:       n.clock,
-			MessageType: "StateMessage",
-			VectClock: 	 n.state.VectClock,
-			Color: 		 n.color,
-		}
-		utils.Info(n.id, "receiveSnapshotMessage", "Send state message")
-		go n.writeMessage(msg)
-	}
-	if (msg.Color == "white" && n.color == "red") {
-		utils.Info(n.id, "receiveSnapshotMessage", "Change to prepost message")
-		msg.MessageType = "PrepostMessage"
-		go n.writeMessage(msg)
-	}
   }
 
   func (n *Net) receiveStateMessage(msg Message) {

@@ -113,7 +113,7 @@ func (server *Server)forwardEdition(command Command) {
     Stamp: server.net.clock,
     MessageType: "EditMessage",
     VectClock: 	 server.net.state.VectClock,
-    Color: "white",
+    Color: server.net.color,
   })
 }
 
