@@ -231,7 +231,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 		}
 	} else {
 		utils.Info(n.id, "receiveStateMessage", "not initiator, msg resend")
-		go n.writeMessage(msg)
+		n.writeMessage(msg)
 	}
   }
 
@@ -256,7 +256,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 		}
 	} else {
 		utils.Info(n.id, "receivePrepostMessage", "not initiator, msg resend")
-		go n.writeMessage(msg)
+		n.writeMessage(msg)
 	}
   }
 

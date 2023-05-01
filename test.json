@@ -2,9 +2,9 @@
  {
   "Id": 0,
   "VectClock": [
-   2,
    1,
-   1
+   0,
+   0
   ],
   "Text": [
    "Hello World!",
@@ -84,9 +84,9 @@
  {
   "Id": 2,
   "VectClock": [
-   0,
-   0,
-   1
+   1,
+   1,
+   2
   ],
   "Text": [
    "Hello World!",
