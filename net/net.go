@@ -5,6 +5,8 @@ import (
 	. "projet/message"
 	"projet/utils"
 	. "projet/utils"
+	"encoding/json"
+	"io/ioutil"
 	// "time"
 )
 
@@ -16,6 +18,12 @@ type Net struct {
 	tab      [NB_SITES]Request
 	messages chan MessageWrapper
 	server   *Server
+	color 	 string
+	initator bool
+	nbExpectedStates int
+	nbExpectedMessages int
+	state 	*State
+	globalStates [NB_SITES]State
 }
 
 func NewNet(id int, port string, addr string) *Net {
@@ -33,6 +41,13 @@ func NewNet(id int, port string, addr string) *Net {
 	n.server = NewServer(port, addr, id, n)
   	utils.Info(n.id, "NewNet", "Successfully created server instance")
 	n.messages = make(chan MessageWrapper)
+	n.color = "white"
+	n.initator = false
+	n.nbExpectedStates = 0
+	n.nbExpectedMessages = 0
+	n.state = NewState(id, n.server.data, NB_SITES)
+	var gStates [NB_SITES]State
+	n.globalStates = gStates
 	return n
 }
 
@@ -44,15 +59,14 @@ func (n *Net) ReceiveCSrequest() {
 		Stamp:       n.clock,
 	}
 
-	array := fmt.Sprint(n.tab)
-    utils.Error(00, "req recCS", array)
-
 	msg := Message{
 		From:        n.id,
 		To:          -1,
 		Content:     "",
 		Stamp:       n.clock,
 		MessageType: "LockRequestMessage",
+		VectClock: 	 n.state.VectClock,
+		Color: 		 n.color,
 	}
 	n.writeMessage(msg)
 }
@@ -70,11 +84,18 @@ func (n *Net) receiveCSRelease() {
 		Content:     "",
 		Stamp:       n.clock,
 		MessageType: "ReleaseMessage",
+		VectClock: 	 n.state.VectClock,
+		Color: 		 n.color,
 	}
 	go n.writeMessage(msg)
 }
 
 func (n *Net) receiveExternalMessage(msg Message) {
+	n.state.VectClockIncr(msg.VectClock, NB_SITES)
+	
+	array := fmt.Sprint(n.state.VectClock)
+	utils.Error(n.id, "receiveExternalMessage", array)
+
 	switch msg.MessageType {
 	case "LockRequestMessage":
 		n.receiveRequestMessage(msg)
@@ -84,6 +105,8 @@ func (n *Net) receiveExternalMessage(msg Message) {
 		n.receiveAckMessage(msg)
   case "EditMessage":
     n.server.SendMessage(msg.Content)
+case "SnapshotMessage":
+    n.receiveSnapshotMessage(msg)
 	}
 }
 
@@ -100,6 +123,8 @@ func (n *Net) receiveRequestMessage(received_msg Message) {
 		Content:     "",
 		Stamp:       n.clock,
 		MessageType: "AckMessage",
+		VectClock: 	 n.state.VectClock,
+		Color: 		 n.color,
 	}
   utils.Info(n.id, "receiveRequestMessage", "Sending Ack message")
 	go n.writeMessage(msg)
@@ -158,6 +183,60 @@ func (n *Net) receiveAckMessage(msg Message) {
 	}
 }
 
+func (n *Net) receiveSnapshotMessage(msg Message) {
+	utils.Info(n.id, "receiveSnapshotMessage", "Received snapshot message")
+	if (msg.Color == "red" && n.color == "white") {
+		n.color = "red"
+		n.globalStates[n.id] = *n.state
+		msg := Message{
+			From:        n.id,
+			To:          -1,
+			Content:     n.state.ToString(),
+			Stamp:       n.clock,
+			MessageType: "StateMessage",
+			VectClock: 	 n.state.VectClock,
+			Color: 		 n.color,
+		}
+		go n.writeMessage(msg)
+	}
+	if (msg.Color == "white" && n.color == "red") {
+		msg.MessageType = "PrepostMessage"
+		go n.writeMessage(msg)
+	}
+  }
+
+  func (n *Net) receiveStateMessage(msg Message) {
+	utils.Info(n.id, "receiveStateMessage", "Received state message")
+	state := StateFromString(msg.Content)
+	if (n.initator) {
+		n.globalStates[state.Id] = state
+		n.nbExpectedStates -= 1
+		n.nbExpectedMessages += state.Review
+		if (n.nbExpectedStates == 0 && n.nbExpectedMessages == 0) {
+			file, _ := json.MarshalIndent(n.globalStates, "", " ")
+			_ = ioutil.WriteFile("test.json", file, 0644)
+		}
+		n.initator = false
+	} else {
+		go n.writeMessage(msg)
+	}
+  }
+
+  func (n *Net) receivePrepostMessage(msg Message) {
+	utils.Info(n.id, "receivePrepostMessage", "Received prepost message")
+	if (n.initator) {
+		n.nbExpectedMessages -= 1
+		utils.Error(n.id, "receivePrepostMessage", "concat prepost")
+		if (n.nbExpectedStates == 0 && n.nbExpectedMessages == 0) {
+			file, _ := json.MarshalIndent(n.globalStates, "", " ")
+			_ = ioutil.WriteFile("test.json", file, 0644)
+		}
+		n.initator = false
+	} else {
+		go n.writeMessage(msg)
+	}
+  }
+
 func (n *Net) ReadMessage() {
 	var raw string
 	for {
@@ -169,6 +248,8 @@ func (n *Net) ReadMessage() {
 				Action:  "process",
 				Message: msg,
 			}
+		} else {
+			n.state.Review -= 1
 		}
 	}
 }
@@ -188,10 +269,12 @@ func (n *Net) MessageHandler() {
     	utils.Info(n.id, "MessageHandler", "New message on the queue: " + msg.ToString())
 		if wrapperItem.Action == "send" {
 			utils.Info(n.id, "MessageHandler", "Spreading message on the ring")
+			n.state.Review += 1
 			msg.Send()
 		} else if wrapperItem.Action == "process" {
 			if msg.To == n.id {
         		utils.Info(n.id, "MessageHandler", "Handler processing the message")
+				n.state.Review -= 1
 				n.receiveExternalMessage(msg)
 			} else if msg.To == -1 && msg.From != n.id { // message for all
 				// process and spread the message on the ring
@@ -204,8 +287,6 @@ func (n *Net) MessageHandler() {
 				msg.Send()
 			}
 		}
-    array := fmt.Sprint(n.tab)
-    utils.Error(00, "mhand", array)
 		// time.Sleep(time.Duration(1) * time.Second)
 	}
 }
@@ -217,5 +298,25 @@ func (n *Net) MessageHandler() {
 
 func (n *Net) SendMessageFromServer(msg Message) {
 	utils.Info(n.id, "SendMessageFromServer", msg.MessageType)
+	go n.writeMessage(msg)
+}
+
+func (n *Net) InitSnapshot() {
+	n.color = "red"
+	n.initator = true
+	n.globalStates[n.id] = *n.state
+	n.nbExpectedStates = NB_SITES - 1
+	n.nbExpectedMessages = n.state.Review
+	utils.Info(n.id, "InitSnapshot", "Snapshot initialisation")
+
+	msg := Message{
+		From:        n.id,
+		To:          -1,
+		Content:     "",
+		Stamp:       n.clock,
+		MessageType: "SnapshotMessage",
+		VectClock: 	 n.state.VectClock,
+		Color: 		 n.color,
+	}
 	go n.writeMessage(msg)
 }

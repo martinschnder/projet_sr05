@@ -75,14 +75,16 @@ func (server *Server)receive() {
             utils.Error(server.id, "ws_receive", "ReadMessage : " + string(err.Error()))
             break
         }
-        array := fmt.Sprint(server.net.tab)
-        utils.Error(00, "req recSERV", array)
         
         server.mutex.Lock()
         command := ParseCommand(string(rcvmsg))
-        server.command = command
+        if (command.Action == "Snapshot") {
+          server.net.InitSnapshot()
+        } else {
+          server.command = command
+          server.net.ReceiveCSrequest()
+        }
         utils.Info(server.id, "ws_receive", "réception : " + string(rcvmsg[:]) )
-        server.net.ReceiveCSrequest()
         utils.Info(server.id, "ws_receive", "commande de type : " + string(command.Action) )
         server.mutex.Unlock()
     }
@@ -99,8 +101,12 @@ func (server *Server)EditData(command Command) {
   case "Supprimer":
     server.data[command.Line - 1] = ""
 }
+
+
   array := fmt.Sprint(server.data[0])
   utils.Error(server.id, "EditData", array)
+
+  server.net.state.Text = server.data
 
   // server.forwardEdition(command)
   // server.net.receiveCSRelease()
@@ -116,6 +122,7 @@ func (server *Server)forwardEdition(command Command) {
     Content: command.ToString(),
     Stamp: server.net.clock,
     MessageType: "EditMessage",
+    VectClock: 	 server.net.state.VectClock,
   })
 
   utils.Error(server.id, "forwardEdition", "fini fct" )
