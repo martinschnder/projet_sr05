@@ -235,19 +235,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 				fmt.Fprintf(file, "%+v\n", i.Value)
 			}
 
-			n.initator = false
-			n.color = "white"
-			msg := Message{
-				From:        n.id,
-				To:          -1,
-				Content:     n.state.ToString(),
-				Stamp:       n.clock,
-				MessageType: "EndSnapshotMessage",
-				VectClock: 	 n.state.VectClock,
-				Color: 		 n.color,
-			}
-			utils.Info(n.id, "receiveStateMessage", "EndSnapshotMessage")
-			go n.writeMessage(msg)
+			n.reinitializeAfterSnapshot()
 		}
 	} else {
 		utils.Info(n.id, "receiveStateMessage", "not initiator, msg resend")
@@ -278,19 +266,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 				fmt.Fprintf(file, "%+v\n", i.Value)
 			}
 
-			n.initator = false
-			n.color = "white"
-			msg := Message{
-				From:        n.id,
-				To:          -1,
-				Content:     n.state.ToString(),
-				Stamp:       n.clock,
-				MessageType: "EndSnapshotMessage",
-				VectClock: 	 n.state.VectClock,
-				Color: 		 n.color,
-			}
-			utils.Info(n.id, "receiveStateMessage", "EndSnapshotMessage")
-			go n.writeMessage(msg)
+			n.reinitializeAfterSnapshot()
 		}
 	} else {
 		utils.Info(n.id, "receivePrepostMessage", "not initiator, msg resend")
@@ -298,8 +274,28 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 	}
   }
 
+  func (n *Net) reinitializeAfterSnapshot() {
+	n.initator = false
+	n.color = "white"
+	n.globalStates = list.New()
+	n.nbExpectedStates = 0
+	n.nbExpectedMessages = 0	
+	msg := Message{
+		From:        n.id,
+		To:          -1,
+		Content:     "",
+		Stamp:       n.clock,
+		MessageType: "EndSnapshotMessage",
+		VectClock: 	 n.state.VectClock,
+		Color: 		 n.color,
+	}
+	utils.Info(n.id, "reinitializeAfterSnapshot", "Send EndSnapshotMessage")
+	go n.writeMessage(msg)
+  }
+
   func (n *Net) receiveEndSnapshotMessage() {
 	n.color = "white"
+	n.globalStates = list.New()
   }
 
 func (n *Net) ReadMessage() {
@@ -334,7 +330,7 @@ func (n *Net) MessageHandler() {
     	utils.Info(n.id, "MessageHandler", "New message on the queue: " + msg.ToString())
 		if wrapperItem.Action == "send" {
 			utils.Info(n.id, "MessageHandler", "Spreading message on the ring")
-			if msg.MessageType != "StateMessage" && msg.MessageType != "PrepostMessage" {
+			if !msg.ConcernSnapshot() {
 				n.state.Review += 1
 			}
 			msg.Send()
@@ -345,7 +341,7 @@ func (n *Net) MessageHandler() {
 				n.receiveExternalMessage(msg)
 			} else if msg.To == -1 && msg.From != n.id { // message for all
 				// process and spread the message on the ring if it doesn't concern the snapshot
-				if msg.MessageType != "StateMessage" && msg.MessageType != "PrepostMessage" {
+				if !msg.ConcernSnapshot() {
 					utils.Info(n.id, "MessageHandler", "Handler processing and sending the message")
 					msg.Send()
 				}

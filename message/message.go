@@ -75,7 +75,7 @@ func (msg Message) ToString() string {
 }
 
 func (msg Message) ConcernSnapshot() bool {
-	return msg.MessageType == "StateMessage" || msg.MessageType == "PrepostMessage" || msg.MessageType == "EndSnapshotMessage"
+	return msg.MessageType == "StateMessage" || msg.MessageType == "PrepostMessage"
 }
 
 func (msg Message) Send() {
@@ -160,8 +160,8 @@ func (s *State) ToString() string {
 func textToString(text []string) string {
 	formatted_str := "#"
 	for i := 0; i < len(text); i++ {
-		text[i] = strings.Replace(text[i], " ", "$_", -1) 
-		formatted_str += text[i] + "#"
+		str := strings.Replace(text[i], " ", "$_", -1) 
+		formatted_str += str + "#"
 	}
 	return formatted_str
 }

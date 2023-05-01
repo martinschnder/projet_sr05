@@ -98,7 +98,6 @@ func (server *Server)EditData(command Command) {
   case "Supprimer":
     server.data[command.Line - 1] = ""
 }
-
   server.net.state.Text = server.data
 
   // server.forwardEdition(command)
