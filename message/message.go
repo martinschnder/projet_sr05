@@ -13,12 +13,12 @@ type Message struct {
 	Content     string
 	Stamp       int
 	MessageType string
-	VectClock 	[]int
-	Color 		string
+	VectClock   []int
+	Color       string
 }
 
 func MessageFromString(raw string) Message {
-  dict := make(map[string]string)
+	dict := make(map[string]string)
 	keyVals := strings.Split(raw[1:], raw[0:1])
 	for _, keyVal := range keyVals {
 		tuple := strings.Split(keyVal[1:], keyVal[0:1])
@@ -56,15 +56,15 @@ func vectClockToArray(raw string) []int {
 	var vectClock = []int{}
 
 	slices := strings.Split(raw[1:], raw[0:1])
-	slices = slices[0:len(slices) - 1]
-	
-    for _, i := range slices {
-        j, err := strconv.Atoi(i)
-        if err != nil {
-            panic(err)
-        }
-        vectClock = append(vectClock, j)
-    }
+	slices = slices[0 : len(slices)-1]
+
+	for _, i := range slices {
+		j, err := strconv.Atoi(i)
+		if err != nil {
+			panic(err)
+		}
+		vectClock = append(vectClock, j)
+	}
 
 	return vectClock
 }
@@ -79,8 +79,8 @@ func (msg Message) ConcernSnapshot() bool {
 }
 
 func (msg Message) Send() {
-  utils.Info(msg.From, "SendMessage", "Sending message")
-  fmt.Printf(msg.ToString())
+	utils.Info(msg.From, "SendMessage", "Sending message")
+	fmt.Printf(msg.ToString())
 }
 
 type MessageWrapper struct {
@@ -94,13 +94,13 @@ type Request struct {
 }
 
 type Command struct {
-  Line int
-  Action string
-  Content string
+	Line    int
+	Action  string
+	Content string
 }
 
 func ParseCommand(raw string) Command {
-  dict := make(map[string]string)
+	dict := make(map[string]string)
 	keyVals := strings.Split(raw[1:], raw[0:1])
 	for _, keyVal := range keyVals {
 		tuple := strings.Split(keyVal[1:], keyVal[0:1])
@@ -110,7 +110,7 @@ func ParseCommand(raw string) Command {
 	action := dict["action"]
 	content := strings.Replace(dict["message"], "$_", " ", -1)
 
-	command := Command {
+	command := Command{
 		line,
 		action,
 		content,
@@ -119,57 +119,54 @@ func ParseCommand(raw string) Command {
 }
 
 func (command Command) ToString() string {
-  formatted_content := strings.Replace(command.Content, " ", "$_", -1) 
+	formatted_content := strings.Replace(command.Content, " ", "$_", -1)
 	formatted_str := fmt.Sprintf("~/line/%d~/action/%s~/message/%s", command.Line, command.Action, formatted_content)
 	return formatted_str
 }
 
-
 type State struct {
-	Id int
+	Id        int
 	VectClock []int
-	Text []string
-	Review int
-  }
+	Text      []string
+	Review    int
+}
 
-  func NewState(id int, text []string, nbSites int) *State {
+func NewState(id int, text []string, nbSites int) *State {
 	state := new(State)
 	state.Id = id
-  	state.VectClock = make([]int, nbSites)
+	state.VectClock = make([]int, nbSites)
 	for i := 0; i < nbSites; i++ {
 		state.VectClock[i] = 0
 	}
 	state.Text = text
 	state.Review = 0
-  	return state
+	return state
 }
 
-func (s *State)VectClockIncr(otherClock []int, nbSites int) {
-	s.VectClock[s.Id] += 1 
+func (s *State) VectClockIncr(otherClock []int, nbSites int) {
+	s.VectClock[s.Id] += 1
 	for i := 0; i < nbSites; i++ {
 		s.VectClock[i] = utils.Max(s.VectClock[i], otherClock[i])
 	}
 }
 
 func (s *State) ToString() string {
-	  formatted_str := fmt.Sprintf("~/Id/%d~/VectClock/%s~/Text/%s~/Review/%d", s.Id, vectClockToString(s.VectClock), textToString(s.Text), s.Review)
-	  return formatted_str
-  }
-
+	formatted_str := fmt.Sprintf("~/Id/%d~/VectClock/%s~/Text/%s~/Review/%d", s.Id, vectClockToString(s.VectClock), textToString(s.Text), s.Review)
+	return formatted_str
+}
 
 func textToString(text []string) string {
 	formatted_str := "#"
 	for i := 0; i < len(text); i++ {
-		str := strings.Replace(text[i], " ", "$_", -1) 
+		str := strings.Replace(text[i], " ", "$_", -1)
 		formatted_str += str + "#"
 	}
 	return formatted_str
 }
 
-
 func textFromString(raw string) []string {
 	text := strings.Split(raw[1:], raw[0:1])
-	text = text[0:len(text) - 1]
+	text = text[0 : len(text)-1]
 
 	for i := 0; i < len(text); i++ {
 		text[i] = strings.Replace(text[i], "$_", " ", -1)
@@ -180,21 +177,21 @@ func textFromString(raw string) []string {
 
 func StateFromString(raw string) State {
 	dict := make(map[string]string)
-	  keyVals := strings.Split(raw[1:], raw[0:1])
-	  for _, keyVal := range keyVals {
-		  tuple := strings.Split(keyVal[1:], keyVal[0:1])
-		  dict[tuple[0]] = tuple[1]
-	  }
-	  id, _ := strconv.Atoi(dict["Id"])
-	  vectClock := vectClockToArray(dict["VectClock"])
-	  text := textFromString(dict["Text"])
-	  review, _ := strconv.Atoi(dict["Review"])
-  
-	  state := State{
-		  id,
-		  vectClock,
-		  text,
-		  review,
-	  }
-	  return state
-  }
+	keyVals := strings.Split(raw[1:], raw[0:1])
+	for _, keyVal := range keyVals {
+		tuple := strings.Split(keyVal[1:], keyVal[0:1])
+		dict[tuple[0]] = tuple[1]
+	}
+	id, _ := strconv.Atoi(dict["Id"])
+	vectClock := vectClockToArray(dict["VectClock"])
+	text := textFromString(dict["Text"])
+	review, _ := strconv.Atoi(dict["Review"])
+
+	state := State{
+		id,
+		vectClock,
+		text,
+		review,
+	}
+	return state
+}
