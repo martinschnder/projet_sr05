@@ -130,7 +130,8 @@ func (server *Server)forwardEdition(command Command) {
     MessageType: "EditMessage",
     VectClock: 	 server.net.state.VectClock,
     Color: server.net.color,
-  }}
+  })
+}
 
 /** SendMessage()
 Utilisée par le site. Selon le message, autorise la modification ou effectue une modification en provenance d'un autre site
