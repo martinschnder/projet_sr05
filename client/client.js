@@ -2,29 +2,39 @@ var ws;
 var fieldsep = "/";
 var keyvalsep = "=";
 
+var color = {
+  red: "#FF0000",
+  white: "#FFFFFF",
+  green: "#72CC50",
+  blue: "#00AEAD",
+  pink: "#F9429E",
+  orange: "#FFC06E"
+}
+
 document.getElementById("connecter").onclick = function (evt) {
   if (ws) {
+    addToLog("Connection already established", color.red);
     return false;
   }
 
   var host = document.getElementById("host").value;
   var port = document.getElementById("port").value;
 
-  addToLog("Attempting to connect to server");
-  addToLog("host = " + host + ", port = " + port);
+  addToLog("Attempting to connect to server", color.white);
+  addToLog("host = " + host + ", port = " + port, color.white);
   ws = new WebSocket("ws://" + host + ":" + port + "/ws");
 
   ws.onopen = function (evt) {
-    addToLog("Connection established");
+    addToLog("Connection established", color.green);
   };
 
   ws.onclose = function (evt) {
-    addToLog("Connection closed");
+    addToLog("Connection closed", color.red);
     ws = null;
   };
 
   ws.onmessage = function (evt) {
-    addToLog("Receiving data from server");
+    addToLog("Receiving data from server", color.pink);
     let jsonMessage = JSON.parse(evt.data);
     const editor = document.querySelector(".editor");
     editor.innerHTML = "";
@@ -47,13 +57,14 @@ document.getElementById("connecter").onclick = function (evt) {
   };
 
   ws.onerror = function (evt) {
-    addToLog("Erreur: " + evt.data);
+    addToLog("Erreur: " + evt.data, color.red);
   };
   return false;
 };
 
 document.getElementById("fermer").onclick = function (evt) {
   if (!ws) {
+    addToLog("Connection already closed", color.red);
     return false;
   }
   ws.close();
@@ -62,6 +73,7 @@ document.getElementById("fermer").onclick = function (evt) {
 
 document.getElementById("envoyer").onclick = function (evt) {
   if (!ws) {
+    addToLog("Connection not established", color.red);
     return false;
   }
   var line = document.getElementById("select-line-number").value;
@@ -72,13 +84,14 @@ document.getElementById("envoyer").onclick = function (evt) {
     format("action", action) +
     format("message", message);
 
-  addToLog("Sending command to server");
+  addToLog("Sending command to server", color.blue);
   ws.send(sndmsg);
   return false;
 };
 
 document.getElementById("snapshot").onclick = function (evt) {
   if (!ws) {
+    addToLog("Connection not established", color.red);
     return false;
   }
 
@@ -87,7 +100,7 @@ document.getElementById("snapshot").onclick = function (evt) {
     format("action", "Snapshot") +
     format("message", "");
 
-  addToLog("Requesting a snapshot to server");
+  addToLog("Requesting a snapshot to server", color.orange);
   ws.send(sndmsg);
   return false;
 };
@@ -104,10 +117,11 @@ selectAction.addEventListener("change", function () {
   }
 });
 
-function addToLog(message) {
+function addToLog(message, color) {
   var logs = document.getElementById("text-logs");
   var d = document.createElement("div");
   d.textContent = message;
+  d.setAttribute("style", "color: " + color + ";");
   logs.appendChild(d);
   logs.scroll(0, logs.scrollHeight);
 }
