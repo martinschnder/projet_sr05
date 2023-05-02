@@ -10,25 +10,25 @@ document.getElementById("connecter").onclick = function (evt) {
   var host = document.getElementById("host").value;
   var port = document.getElementById("port").value;
 
-  addToLog("Tentative de connexion");
+  addToLog("Attempting to connect to server");
   addToLog("host = " + host + ", port = " + port);
   ws = new WebSocket("ws://" + host + ":" + port + "/ws");
 
   ws.onopen = function (evt) {
-    addToLog("Websocket ouverte");
+    addToLog("Connection established");
   };
 
   ws.onclose = function (evt) {
-    addToLog("Websocket fermée");
+    addToLog("Connection closed");
     ws = null;
   };
 
   ws.onmessage = function (evt) {
-    addToLog("Réception: " + evt.data);
+    addToLog("Receiving data from server");
     let jsonMessage = JSON.parse(evt.data);
     const editor = document.querySelector(".editor");
     editor.innerHTML = "";
-    jsonMessage.forEach(function (line, index) {
+    jsonMessage.Data.forEach(function (line, index) {
       const lineDiv = document.createElement("div");
       lineDiv.classList.add("line");
 
@@ -43,6 +43,7 @@ document.getElementById("connecter").onclick = function (evt) {
 
       editor.appendChild(lineDiv);
     });
+    document.getElementById("hlg").innerHTML = jsonMessage.Stamp;
   };
 
   ws.onerror = function (evt) {
@@ -71,7 +72,7 @@ document.getElementById("envoyer").onclick = function (evt) {
     format("action", action) +
     format("message", message);
 
-  addToLog("Envoi: " + sndmsg);
+  addToLog("Sending command to server");
   ws.send(sndmsg);
   return false;
 };
@@ -86,7 +87,7 @@ document.getElementById("snapshot").onclick = function (evt) {
     format("action", "Snapshot") +
     format("message", "");
 
-  addToLog("Request a snapshot : " + sndmsg);
+  addToLog("Requesting a snapshot to server");
   ws.send(sndmsg);
   return false;
 };

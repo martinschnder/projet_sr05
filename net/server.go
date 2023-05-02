@@ -48,7 +48,11 @@ func (server *Server) Send() {
 	if server.socket == nil {
 		utils.Error(server.id, "ws_send", "Websocket is closed")
 	} else {
-		err := server.socket.WriteJSON(server.data)
+    msg := MessageToClient{
+      Data: server.data,
+      Stamp: server.net.clock,
+    }
+		err := server.socket.WriteJSON(msg)
 		if err != nil {
 			utils.Error(server.id, "ws_send", "Error message : "+string(err.Error()))
 		} else {
