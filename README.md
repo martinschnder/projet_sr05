@@ -70,7 +70,7 @@ A partir de l'algorithme du cours, des méthodes ont été écrites :
 -  `func (n *Net) isLastRequest() bool` : Comparative des estampilles pour valider que le site a emis la quete la plus vieille et donc peut accéder à la section critique
 -  `func (n *Net) writeMessage(msg Message)` : Diffusion d'un message dans l'anneau
 
-Enfin, nous avons pu dérouler implémenter le code en déroulant l'algorithme du cours.
+Enfin, nous avons pu implémenter le programme en déroulant l'algorithme du cours.
 
 ## Snapshot
 
@@ -79,8 +79,8 @@ Le code a été écrit en se basant sur l'algorithme d'instantané avec reconsti
 Les snapshots se basent sur les attributs suivants de la classe net :
 - `color string` : Etat du snapshot
 -  `initator bool` : Site demandant un snapshot (faux si c'est un autre site)
-- `nbExpectedStates int` :
-- `nbExpectedMessages int`:
+- `nbExpectedStates int` : Nombre de sites du réseau
+- `nbExpectedMessages int`: Nombre de messages envoyés mais non reçu
 - `state *State`:
 - `globalStates *list.List`:
 
@@ -89,12 +89,12 @@ A partir de l'algorithme 11, des méthodes ont été écrites :
 - `func (n *Net) InitSnapshot()` : Début de l'instantané
 - `func (n *Net) receiveSnapshotMessage(msg Message)` : 
 - `func (n *Net) receiveStateMessage(msg Message)` : Reception d'un message de type State
-- `func (n *Net) receivePrepostMessage(msg Message)` : Reception d'un message de type State
-- `func (n *Net) reinitializeAfterSnapshot()` : Réception d’un message prépost
+- `func (n *Net) receivePrepostMessage(msg Message)` : Réception d’un message prépost
+- `func (n *Net) reinitializeAfterSnapshot()` : 
 - `func (n *Net) receiveEndSnapshotMessage()`:
 - `func (n *Net) SendMessageFromServer(msg Message)` :
 
-
+Enfin, nous avons pu implémenter le code en déroulant l'algorithme 11.
 
 ## Documentation
 
