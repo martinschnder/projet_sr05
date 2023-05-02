@@ -50,7 +50,7 @@ func NewNet(id int, port string, addr string) *Net {
 }
 
 func (n *Net) ReceiveCSrequest() {
-	utils.Info(n.id, "ReceiveCSRequest", "received cs request from server")
+	utils.Info(n.id, "ReceiveCSRequest", "received CS request from server")
 	n.clock += 1
 	n.tab[n.id] = Request{
 		RequestType: "access",
@@ -108,11 +108,13 @@ func (n *Net) receiveExternalMessage(msg Message) {
 		n.receivePrepostMessage(msg)
 	case "EndSnapshotMessage":
 		n.receiveEndSnapshotMessage()
+  default:
+    utils.Error(n.id, "receiveExternalMessage", "Unknown message type")
 	}
 }
 
 func (n *Net) receiveRequestMessage(received_msg Message) {
-	utils.Info(n.id, "receiveRequestMessage", "Received request message")
+	utils.Info(n.id, "receiveRequestMessage", fmt.Sprintf("Received request message from %d", received_msg.From))
 	n.clock = Max(n.clock, received_msg.Stamp) + 1
 	n.tab[received_msg.From] = Request{
 		RequestType: "access",
@@ -127,11 +129,11 @@ func (n *Net) receiveRequestMessage(received_msg Message) {
 		VectClock:   n.state.VectClock,
 		Color:       n.color,
 	}
-	utils.Info(n.id, "receiveRequestMessage", "Sending Ack message")
+	utils.Info(n.id, "receiveRequestMessage", fmt.Sprintf("Sending Ack message to %d", received_msg.From))
 	go n.writeMessage(msg)
 	if n.tab[n.id].RequestType == "access" && n.isValidRequest() {
+		utils.Warning(n.id, "MessageHandler", "Entering in critical section")
 		n.server.SendMessage("OkCs")
-		utils.Info(n.id, "MessageHandler", "Sending OkCs to server")
 	}
 }
 
@@ -139,11 +141,9 @@ func (n *Net) isValidRequest() bool {
 	for i := 0; i < NB_SITES; i++ {
 		if i != n.id {
       if n.tab[i].Stamp < n.tab[n.id].Stamp {
-        utils.Warning(n.id, "isValidRequest", "false")
         return false
       } else if n.tab[i].Stamp == n.tab[n.id].Stamp {
         if i < n.id {
-          utils.Warning(n.id, "isValidRequest", "false")
           return false
         }
       }
@@ -154,20 +154,20 @@ func (n *Net) isValidRequest() bool {
 }
 
 func (n *Net) receiveReleaseMessage(msg Message) {
-	utils.Info(n.id, "receiveReleaseMessage", "Received release message")
+	utils.Info(n.id, "receiveReleaseMessage", fmt.Sprintf("Received release message from %d", msg.From))
 	n.clock = Max(n.clock, msg.Stamp) + 1
 	n.tab[msg.From] = Request{
 		RequestType: "release",
 		Stamp:       msg.Stamp,
 	}
 	if n.tab[n.id].RequestType == "access" && n.isValidRequest() {
+		utils.Warning(n.id, "receiveReleaseMessage", "Entering in critical section")
 		n.server.SendMessage("OkCs")
-		utils.Info(n.id, "MessageHandler", "Sending OkCs to server")
 	}
 }
 
 func (n *Net) receiveAckMessage(msg Message) {
-	utils.Info(n.id, "MessageHandler", "Received ack message")
+	utils.Info(n.id, "receiveAckMessage", fmt.Sprintf("Received ack message from %d", msg.From))
 	n.clock = Max(n.clock, msg.Stamp) + 1
 	if n.tab[msg.From].RequestType == "release" {
 		n.tab[msg.From] = Request{
@@ -177,16 +177,15 @@ func (n *Net) receiveAckMessage(msg Message) {
 	}
 	utils.Warning(n.id, "receiveAckMessage", "request : "+n.tab[n.id].RequestType)
 	if n.tab[n.id].RequestType == "access" && n.isValidRequest() {
-		utils.Info(n.id, "MessageHandler", "Sending OkCs to server")
+		utils.Warning(n.id, "receiveAckMessage", "Entering in critical section")
 		n.server.SendMessage("OkCs")
 	}
 }
 
 func (n *Net) receiveSnapshotMessage(msg Message) {
-	utils.Error(n.id, "receiveSnapshotMessage", n.color)
-	utils.Info(n.id, "receiveSnapshotMessage", "Received snapshot message")
+	utils.Info(n.id, "receiveSnapshotMessage", fmt.Sprintf("Received snapshot message from %d", msg.From))
 	if msg.Color == "red" && n.color == "white" {
-		utils.Error(n.id, "receiveSnapshotMessage", "SNAPSHOT MODE")
+		utils.Warning(n.id, "receiveSnapshotMessage", "Entering in snapshot mode")
 
 		n.color = "red"
 		n.globalStates.PushBack(n.state.ToString())
@@ -199,7 +198,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 			VectClock:   n.state.VectClock,
 			Color:       n.color,
 		}
-		utils.Info(n.id, "receiveSnapshotMessage", "Send state message")
+		utils.Info(n.id, "receiveSnapshotMessage", "Sending state message")
 		go n.writeMessage(msg)
 	}
 	if msg.Color == "white" && n.color == "red" {
@@ -210,7 +209,7 @@ func (n *Net) receiveSnapshotMessage(msg Message) {
 }
 
 func (n *Net) receiveStateMessage(msg Message) {
-	utils.Info(n.id, "receiveStateMessage", "Received state message")
+	utils.Info(n.id, "receiveStateMessage", fmt.Sprintf("Received state message from %d", msg.From))
 	state := StateFromString(msg.Content)
 	if n.initator {
 		n.globalStates.PushBack(state.ToString())
@@ -236,7 +235,7 @@ func (n *Net) receiveStateMessage(msg Message) {
 			n.reinitializeAfterSnapshot()
 		}
 	} else {
-		utils.Info(n.id, "receiveStateMessage", "not initiator, msg resend")
+		utils.Info(n.id, "receiveStateMessage", "not initiator, resending message")
 		go n.writeMessage(msg)
 	}
 }
@@ -300,7 +299,6 @@ func (n *Net) ReadMessage() {
 	var raw string
 	for {
 		fmt.Scanln(&raw)
-		utils.Info(n.id, "ReadMessage", "Detected new message : "+raw)
 		var msg = MessageFromString(raw)
 		if msg.From != n.id {
 			n.messages <- MessageWrapper{
@@ -314,7 +312,6 @@ func (n *Net) ReadMessage() {
 }
 
 func (n *Net) writeMessage(msg Message) {
-	utils.Info(n.id, "WriteMessage", "Writing new message on the queue")
 	n.messages <- (MessageWrapper{
 		Action:  "send",
 		Message: msg,
@@ -325,28 +322,23 @@ func (n *Net) MessageHandler() {
 	for {
 		wrapperItem := <-n.messages
 		var msg = wrapperItem.Message
-		utils.Info(n.id, "MessageHandler", "New message on the queue: "+msg.ToString())
 		if wrapperItem.Action == "send" {
-			utils.Info(n.id, "MessageHandler", "Spreading message on the ring")
 			if !msg.ConcernSnapshot() {
 				n.state.Review += 1
 			}
 			msg.Send()
 		} else if wrapperItem.Action == "process" {
 			if msg.To == n.id {
-				utils.Info(n.id, "MessageHandler", "Handler processing the message")
 				n.state.Review -= 1
 				n.receiveExternalMessage(msg)
 			} else if msg.To == -1 && msg.From != n.id { // message for all
 				// process and spread the message on the ring if it doesn't concern the snapshot
 				if !msg.ConcernSnapshot() {
-					utils.Info(n.id, "MessageHandler", "Handler processing and sending the message")
 					msg.Send()
 				}
 				n.receiveExternalMessage(msg)
 			} else { // message not for us
 				// forward the message
-				utils.Info(n.id, "MessageHandler", "Handler forwarding the message")
 				msg.Send()
 			}
 		}
@@ -354,13 +346,7 @@ func (n *Net) MessageHandler() {
 	}
 }
 
-// func (n Net) sendMessageToServer(msg Message) {
-// 	utils.Info(n.id, "sendMessageToServer", msg.MessageType)
-// 	n.server.SendMessage(msg.Content)
-// }
-
 func (n *Net) SendMessageFromServer(msg Message) {
-	utils.Info(n.id, "SendMessageFromServer", msg.MessageType)
 	go n.writeMessage(msg)
 }
 
@@ -371,7 +357,7 @@ func (n *Net) InitSnapshot() {
 	n.nbExpectedStates = NB_SITES - 1
 	n.nbExpectedMessages = n.state.Review
 
-	utils.Error(n.id, "InitSnapshot", "Snapshot initialisation")
+	utils.Warning(n.id, "InitSnapshot", "Snapshot initialisation")
 	str := fmt.Sprintf("%d states and %d prepost messages to wait to finish the snapshot", n.nbExpectedStates, n.nbExpectedMessages)
 	utils.Info(n.id, "receivePrepostMessage", str)
 
@@ -384,9 +370,6 @@ func (n *Net) InitSnapshot() {
 		VectClock:   n.state.VectClock,
 		Color:       n.color,
 	}
-
-	// data:= fmt.Sprintf("%+v", msg)
-	// utils.Info(n.id, "InitSnapshot", data)
 
 	n.writeMessage(msg)
 }
