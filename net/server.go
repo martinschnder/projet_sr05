@@ -143,6 +143,7 @@ func (server *Server) SendMessage(action string) {
 		server.EditText(server.command)
 		server.forwardEdition(server.command)
 		server.net.receiveCSRelease()
+		server.Send()
 	} else {
 		// Incoming command from another site
 		command := CommandFromString(action)
