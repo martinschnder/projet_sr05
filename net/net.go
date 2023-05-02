@@ -60,7 +60,7 @@ func NewNet(id int, port string, addr string) *Net {
 Envoi d'une requete d'accès au document partagé
 **/
 func (n *Net) ReceiveCSrequest() {
-	utils.Info(n.id, "ReceiveCSRequest", "received CS request from server")
+	utils.Info(n.id, "ReceiveCSRequest", "Received CS request from server")
 	n.clock += 1
 	n.tab[n.id] = Request{
 		RequestType: "access",
@@ -90,7 +90,7 @@ func (n *Net) receiveCSRelease() {
 		RequestType: "release",
 		Stamp:       n.clock,
 	}
-	utils.Info(n.id, "receiveCSRelease", "Server CS release received")
+	utils.Info(n.id, "receiveCSRelease", "Release CS release from server")
 	msg := Message{
 		From:        n.id,
 		To:          -1,
@@ -174,18 +174,15 @@ func (n *Net) isValidRequest() bool {
 		if i != n.id {
 			if n.tab[i].Stamp < n.tab[n.id].Stamp {
 				// On a trouvé une horloge plus faible, on ne peut pas modifier
-				utils.Warning(n.id, "isValidRequest", "false")
         		return false
       		} else if n.tab[i].Stamp == n.tab[n.id].Stamp {
 				if i < n.id {
 					// On a trouvé une horloge égale, mais l'ordre des sites fait que la modification est impossible
-					utils.Warning(n.id, "isValidRequest", "false")
 					return false
 				}
       		}
 		}
 	}
-	utils.Warning(n.id, "isValidRequest", "true")
 	return true
 }
 
@@ -392,7 +389,6 @@ func (n *Net) MessageHandler() {
 		var msg = wrapperItem.Message
 		if wrapperItem.Action == "send" {
 			//Le message est propagé sur l'anneau
-			utils.Info(n.id, "MessageHandler", "Spreading message on the ring")
 			if !msg.ConcernSnapshot() {
 				n.state.Review += 1
 			}

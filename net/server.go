@@ -95,7 +95,7 @@ func (server *Server) receive() {
 			server.command = command
 			server.net.ReceiveCSrequest()
 		}
-		utils.Info(server.id, "ws_receive", "Received "+string(command.Action) + " action")
+    utils.Info(server.id, "ws_receive", "Received action :" + string(command.Action))
 	}
 }
 
@@ -112,6 +112,7 @@ func (server *Server) EditData(command Command) {
 		server.data[command.Line-1] = ""
   default:
     utils.Error(server.id, "EditData", "Unknown command action")
+    return
 	}
 	server.net.state.Text = server.data
 	server.Send()
