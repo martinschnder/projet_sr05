@@ -4,10 +4,6 @@ import (
 	"flag"
 	. "projet/net"
 	"time"
-	// "fmt"
-	// "container/list"
-	// . "projet/message"
-	// "os"
 )
 
 func main() {
@@ -27,15 +23,15 @@ func main() {
 	// var state = NewState(0, data, 3)
 
 	// my_list := list.New()
-    // my_list.PushFront(*state)
+	// my_list.PushFront(*state)
 
 	// file, fileErr := os.Create("snapshot.txt")
 	// if fileErr != nil {
-    // 	fmt.Println(fileErr)
-    // 	return
+	// 	fmt.Println(fileErr)
+	// 	return
 	// }
 
-    // for i := my_list.Front(); i != nil; i = i.Next() {
+	// for i := my_list.Front(); i != nil; i = i.Next() {
 	// 	fmt.Fprintf(file, "%+v\n", i.Value)
-    // }
+	// }
 }

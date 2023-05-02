@@ -1,116 +1,242 @@
-## Explication des premières avancées :
+# SR05 Projet de programmation P23
 
-- Déroulement des étapes sur la page [moodle](https://moodle.utc.fr/mod/page/view.php?id=155982) jusqu'à l'étape _recaler l'horloge locale à l'arrivée_.
+Bordeau Oceane, Gharbi Wassim, Scheidler Nicolas, Schneider Martin
 
----
+## Presentation
 
-**Point sur startup.sh : j'arrive pas à le lancer **
+Notre projet permet d'accèder à un document texte en lecture/écriture depuis plusieurs sites de manière simulatanée. L'édition de ce document correspond à la section critique du programme. La communication des sites est assurée par le biais d'un anneau.
+Pour répondre à nos objectifs, un algortihme réparti a été implémenté. Celui-ci est composé de plusieurs algortihmes fondamentaux :
 
-**Dans le main :**
-Création des sites (avec package flag) : un site est une instance de la classe "net".
-Dans le code, le site local correspond à la variable "n".
-Pour cette notice, le "siteA" correspondra toujours au site local.
-Le "siteB" sera l'expéditeur des messages recus.
-Le "siteC" sera le destinataire des messages recus.
+- Un algorithme de file d'attente : Coordonner les demandes d'entrée en section critique entre les différents sites.
+- Un algorithme de sauvegarde : Capturer un instantané cohérent de l'état de l'éxécution (document, demandes en attente, traffic réseau).
 
-Lancement goroutines : app.ReadMessage() et app.MessageHandler()
+Une interface web est également disponible.
 
-**Goroutine app.ReadMessage():** Pour initier un message
-Dans une boucle :
+## Installation
 
-1.  Attente une saisie (un message du siteA) en boucle sur l'entrée standard (stdin) : la string "raw"
-2.  "raw" est mis sous notre format de message (type Message) par la fonction MessageFromString
-3.  Après verification que le destinateur n'est pas l'expediteur (un message précedemment envoyé serait revenu après parcours dans l'anneau), envoi dans le chan (bizarre enft le 3.)
+Tout d'abord, il est necessaire d'importer le projet sur votre machine.
 
-**Goroutine app.MessageHandler():** Pour la réception et le traitement selon la situation.
-Dans une boucle :
+Vous pouvez cloner le repo Github :
+`$ git clone https://github.com/martinschnder/projet_sr05.git`
+ou décompresser l'archive tar.
 
-1.  Lecture bloquante dans le chan du siteA, en attente d'un message arrivant. Le traitement du message est fait par le biais de la variable wrapperItem (type MessageWrapper)
-2.  Selon la valeur de la valeur de l'attribut "Action" de wrapperItem:
-    - Si Action = "send": (le message va tourner dans l'anneau jusqu'à arriver au destinataire)
-      Diffusion du message dans l'anneau par la fonction message.Send() : ecriture du message sur la sortie standart (stdout)
-    - Si Action = "process" : Traitement par net.receiveExternalMessage()
-      - le message est pour le siteA (msg.To == n.id) :
-        on traite uniquement le message
-      - le message est pour tout le monde (msg.To == -1 && msg.From != n.id) :
-        on traite le message, et on le diffuse sur l'anneau avec message.Send()
-      - le message n'est pas pour le siteA :
-        on le diffuse uniquement avec message.Send()
-3.  Traitement du message, selon le type du message
-    - LockRequestMessage : fct receiveRequestMessage()
-      A. On fait jsp trop quoi avec n.clock()
-      B. On actualise le statut de la Request en "access" du siteB l'acces exclusive dans l'attribut tab du siteA. Le siteA considere alors que la ressource est utilisé par le siteB et qu'elle lui ait indisponible.
-      C. On envoie une confirmation au siteB avec un message de type "AckMessage" et l'action "Send" (garanti de reception par le siteB) avec net.writeMessage() (construit le MessageWrapper approprié)
-      D. **_Si tata alors TODO send okCS to server_**
-    - ReleaseMessage : fct receiveReleaseMessage()
-      A. On fait jsp trop quoi avec n.clock()
-      B. On actualise le statut de la Request en "release" du siteB demander dans l'attribut tab du siteA. Le site considere alors que la ressource n'est pas utilisé par le siteB.
-      C. **_Si tata alors TODO send okCS to server_**
-    - AckMessage : fct receiveAckMessage() :
-      A. On fait jsp trop quoi avec n.clock()
-      B. Si le site considérait que l'expéditeur n'utilisait pas la ressource, il actualise le statut de l'expiditeur en "ack". Le siteA considère que le siteB lui accorde la ressource.
-      C. **_Si tata alors TODO send okCS to server_**
+Voici l'arborescence que vous devriez avoir :
+![Screenshot from 2023-05-02 01-46-43.png](./_resources/Screenshot%20from%202023-05-02%2001-46-43.png)
 
-**Type:**
+## Lancement
 
-```
-type Net struct {
-    id       int
-    clock    int
-    tab      [NB_SITES]Request //implemente la connaissance du monde du site id.
-    messages chan MessageWrapper
-    server   Server
-}
-```
+Compilez le projet pour obtenir un executable :
+`$ go build .`
+Un éxécutable "projet" devrait apparaître.
 
-- Message : structure tel que
+Exécuter le script startup.sh :
+`$ ./startup.sh`
+Il execute une instance du projet par site et les met en réseau en anneau :
+`./projet -id 0 -port 2222 < /tmp/f | ./projet -id 1 -port 3333 | ./projet -id 2 -port 4444 > /tmp/f`
+Ici, nous créons 3 sites distincts sur 3 ports : 2222, 3333, 4444.
 
-```
-type Message struct {
-    From        int
-    To          int
-    Content     string
-    Stamp       int
-    MessageType string
-}
-```
+Ouvrir les interfaces web et connecter les websockets, en ouvrant autant de pages que de sites (3 ici):
+`$ firefox client/client.html`
 
-- MessageWrapper :
+Une fois connecté, vous devriez obtenir des logs semblables :
+![Screenshot from 2023-05-02 02-05-15.png](./_resources/Screenshot%20from%202023-05-02%2002-05-15.png)
 
-```
-type MessageWrapper struct {
-    Action  string ("send" || "process")
-    Message Message
-}
-```
+## Utilisation
 
-- MessageType :
-  - Lock Request Message (Message de demande de verrouillage )
-  - Ack Message (Message de confirmation)
-  - Release Message (Message de libération)
-- Request :
+Avec le visuel du document, vous pouvez suivre son état. Depuis chaque site, vous pouvez éditer le document :
 
-```
-type Request struct {
-    RequestType string
-    Stamp       int
-}
-```
+- Ligne : Selectionner le numéro de la ligne que vous souhaitez modifier
+- Action : Choisisser ce que vous voulez faire sur cette ligne (Remplace, Ajouter ou Supprimer)
+- Texte : Entrer le texte que vous voulez
 
-- Server :
+Vous pouvez vérifier qu'un action sur un site entraîne la modification de chaque réplicats sur tous les sites.
 
-```
-type Server struct {
+Enfin vous pouvez réaliser un snapshot. L'appui du bouton généra un fichier "snapshot.txt".
+
+## Implémentation des algorithmes
+
+### File d'attente
+
+Le code a été écrit en se basant sur l'algorithme de file d'attente fourni (lien).
+
+La file d'attente se base sur les deux attributs de la classe net :
+
+- `clock int ` : l'horloge logique du site
+- `tab [NB_SITES]Request` : Etat des requetes de demandes d'accès en section critique
+
+A partir de l'algorithme du cours, des méthodes ont été écrites :
+
+- `func (n *Net) ReceiveCSrequest()` : Envoi d'une requete d'accès au document partagé
+- `func (n *Net) receiveCSRelease()` : Envoi d'une requete de libération du document partagé
+- `func (n *Net) receiveRequestMessage(received_msg Message)` : Traitement d'une requete d'accès au document partagé reçue
+- `func (n *Net) receiveReleaseMessage(msg Message)` : Traitement d'un message de liberation du document partagé reçu
+- `func (n *Net) receiveAckMessage(msg Message)` : traitement d'un message d'acquittement reçu.
+- `func (n *Net) isLastRequest() bool` : Comparative des estampilles pour valider que le site a emis la quete la plus vieille et donc peut accéder à la section critique
+- `func (n *Net) writeMessage(msg Message)` : Diffusion d'un message dans l'anneau
+
+Enfin, nous avons pu implémenter le programme en déroulant l'algorithme du cours.
+
+## Snapshot
+
+Le code a été écrit en se basant sur l'algorithme d'instantané avec reconstitution de configuration (algo 11 du cours 6).
+
+Les snapshots se basent sur les attributs suivants de la classe net :
+
+- `color string` : Etat du snapshot
+- `initator bool` : Site demandant un snapshot (faux si c'est un autre site)
+- `nbExpectedStates int` : Nombre de sites du réseau
+- `nbExpectedMessages int`: Nombre de messages envoyés mais non reçu
+- `state *State`:
+- `globalStates *list.List`:
+
+A partir de l'algorithme 11, des méthodes ont été écrites :
+
+- `func (n *Net) receiveSnapshotMessage(msg Message)` : Demande de création d'un instantané.
+- `func (n *Net) InitSnapshot()` : Début de l'instantané
+- `func (n *Net) receiveSnapshotMessage(msg Message)` :
+- `func (n *Net) receiveStateMessage(msg Message)` : Reception d'un message de type State
+- `func (n *Net) receivePrepostMessage(msg Message)` : Réception d’un message prépost
+- `func (n *Net) reinitializeAfterSnapshot()` :
+- `func (n *Net) receiveEndSnapshotMessage()`:
+- `func (n *Net) SendMessageFromServer(msg Message)` :
+
+Enfin, nous avons pu implémenter le code en déroulant l'algorithme 11.
+
+## Documentation
+
+### Package utils : Utilitaires
+
+- Fonctions des logs
+  - `func Info(id int, where string, what string)` : Log d'informations
+  - `func Warning(id int, where string, what string)` : Log d'avertissement
+  - `func Error(id int, where string, what string)` : Log d'erreur
+- Variable de
+  - `var rouge string`
+  - `var orange string`
+  - `var raz string`
+  - `var cyan string`
+  - `var pid``
+  - `var stderr`
+
+### Package net : Class Net et Server
+
+- net.go
+  - Attributs
+  ```
+  	type Net struct {
+  id       int
+  clock    int
+  tab      [NB_SITES]Request
+  messages chan MessageWrapper
+  server   *Server
+  color 	 string
+  initator bool
+  nbExpectedStates int
+  nbExpectedMessages int
+  state 	*State
+  globalStates *list.List
+  }
+  ```
+  - Methodes
+    - `NewNet(id int, port string, addr string) *Net` : Constructeur
+    - `func (n *Net) ReceiveCSrequest()` : Envoi d'une requete d'accès au document partagé
+    - `func (n *Net) receiveCSRelease()` : Envoi d'une requete de libération du document partagé
+    - `func (n *Net) receiveExternalMessage(msg Message)` : Appel de la fonction approprié selon le type du message
+    - `func (n *Net) receiveRequestMessage(received_msg Message)` : Traitement d'une requete d'accès au document partagé reçue
+    - `func (n *Net) isLastRequest() bool` : Comparative des estampilles pour valider que le site a emis la quete la plus vieille et donc peut accéder à la section critique
+    - `func (n *Net) receiveReleaseMessage(msg Message)` : Traitement d'un message de liberation du document partagé reçu
+    - `func (n *Net) receiveAckMessage(msg Message)` : traitement d'un message d'acquittement reçu.
+    - `func (n *Net) receiveSnapshotMessage(msg Message)` :
+    - `func (n *Net) receiveStateMessage(msg Message)` :
+    - `func (n *Net) receivePrepostMessage(msg Message)` :
+    - `func (n *Net) reinitializeAfterSnapshot()` :
+    - `func (n *Net) receiveEndSnapshotMessage()`:
+    - `func (n *Net) ReadMessage()` :
+    - `func (n *Net) writeMessage(msg Message)` :
+    - `func (n *Net) MessageHandler()` :
+    - `func (n *Net) SendMessageFromServer(msg Message)` :
+    - `func (n *Net) InitSnapshot()` :
+- server.go
+  - Attributs
+  ```
+  	type Server struct {
   socket *websocket.Conn
   mutex *sync.Mutex
   data []string
   id int
   net *Net
-}
-```
+  command Command
+  }
+  ```
+  - Methodes
+    - `func NewServer(port string, addr string, id int, net *Net) *Server : Constructeur
+    - `func (server *Server)createSocket(w http.ResponseWriter, r *http.Request) : Creation de la socket
+    - `func (server *Server)Send()` :
+    - `func (server *Server)closeSocket()` :
+    - `func (server *Server)receive()` :
+    - `func (server *Server)EditData(command Command)` :
+    - `func (server *Server)forwardEdition(command Command)` :
+    - `func (server *Server)SendMessage(action string)` :
 
-Questions :
-Comment fonctionne MessageFromString() ?
-Quel est l'interet de n.logger() ?
-Qu'indique l'attribut "stamp" ? Lien entre stamp et clock mais quoi exactement ?
-Quel est le role du serveur exactement ?
+### Package Message : Class State
+
+- Type :
+
+  ```
+  type Message struct {
+  	From        int
+  	To          int
+  	Content     string
+  	Stamp       int
+  	MessageType string
+  	VectClock 	[]int
+  	Color 		string
+  }
+  ```
+
+  ```
+  type MessageWrapper struct {
+  	Action  string
+  	Message Message
+  }
+  ```
+
+  ```
+  type Request struct {
+  	RequestType string
+  	Stamp       int
+  }
+  ```
+
+  ```
+  type Command struct {
+    Line int
+    Action string
+    Content string
+  }
+  ```
+
+  ```
+  type State struct {
+  Id int
+  VectClock []int
+  Text []string
+  Review int
+  }
+  ```
+
+- Fonctions :
+  - `func MessageFromString(raw string) Message` : Formatte une string sous forme de message pour les entrées standards.
+  - `func vectClockToString(vectClock []int)` string : Transforme une horloge en string
+  - `func vectClockToArray(raw string) []int` : Horloge sous forme de tableau
+  - `func (msg Message) ToString() string` : Message sous forme de string
+  - `func (msg Message) ConcernSnapshot() bool` :
+  - `func (msg Message) Send()` : Envoi d'un message
+  - `func ParseCommand(raw string) Command` : Parse une string pour la mettre sous forme de command
+  - `func (command Command) ToString() string` : fonction réciproque de ParseCommand(raw string)
+  - `func NewState(id int, text []string, nbSites int) *State` : Constructeur
+  - `func (s *State)VectClockIncr(otherClock []int, nbSites int)` :
+  - `func (s *State) ToString() string` :
+  - `func textToString(text []string) string` :
+  - `func textFromString(raw string) []string` :
+  - `func StateFromString(raw string) State` :
