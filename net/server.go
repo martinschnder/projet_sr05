@@ -19,7 +19,6 @@ type Server struct {
 
 func NewServer(port string, addr string, id int, net *Net) *Server {
 	server := new(Server)
-	// s.clock = 0
 	server.socket = nil
 	server.net = net
 	server.mutex = &sync.Mutex{}
@@ -29,7 +28,7 @@ func NewServer(port string, addr string, id int, net *Net) *Server {
 
 	go http.HandleFunc("/ws", server.createSocket)
 	go http.ListenAndServe(addr+":"+port, nil)
-	utils.Info(server.id, "newServer", "server listening on "+addr+":"+port)
+	utils.Info(server.id, "newServer", "Server listening on "+addr+":"+port)
 	return server
 }
 
@@ -50,19 +49,19 @@ func (server *Server) createSocket(w http.ResponseWriter, r *http.Request) {
 
 func (server *Server) Send() {
 	if server.socket == nil {
-		utils.Error(server.id, "ws_send", "websocket non ouverte")
+		utils.Error(server.id, "ws_send", "Websocket is closed")
 	} else {
 		err := server.socket.WriteJSON(server.data)
 		if err != nil {
 			utils.Error(server.id, "ws_send", "Error message : "+string(err.Error()))
 		} else {
-			utils.Info(server.id, "ws_send", "sending data to client")
+			utils.Info(server.id, "ws_send", "Sending data to client")
 		}
 	}
 }
 
 func (server *Server) closeSocket() {
-	utils.Info(server.id, "ws_close", "Fin des réceptions => fermeture de la websocket")
+  utils.Info(server.id, "ws_close", "End of receptions : closing socket")
 	server.socket.Close()
 }
 
@@ -71,7 +70,7 @@ func (server *Server) receive() {
 	for {
 		_, rcvmsg, err := server.socket.ReadMessage()
 		if err != nil {
-			utils.Error(server.id, "ws_receive", "ReadMessage : "+string(err.Error()))
+			utils.Error(server.id, "ws_receive", "Error : "+string(err.Error()))
 			break
 		}
 
@@ -83,8 +82,7 @@ func (server *Server) receive() {
 			server.command = command
 			server.net.ReceiveCSrequest()
 		}
-		utils.Info(server.id, "ws_receive", "réception : "+string(rcvmsg[:]))
-		utils.Info(server.id, "ws_receive", "commande de type : "+string(command.Action))
+		utils.Info(server.id, "ws_receive", "Received "+string(command.Action) + " action")
 		server.mutex.Unlock()
 	}
 }
@@ -97,15 +95,15 @@ func (server *Server) EditData(command Command) {
 		server.data[command.Line-1] += command.Content
 	case "Supprimer":
 		server.data[command.Line-1] = ""
+  default:
+    utils.Error(server.id, "EditData", "Unknown command action")
 	}
 	server.net.state.Text = server.data
-
-	// server.forwardEdition(command)
-	// server.net.receiveCSRelease()
 	server.Send()
 }
 
 func (server *Server) forwardEdition(command Command) {
+  utils.Info(server.id, "forwardEdition", "Server forwarding edition")
 	server.net.SendMessageFromServer(Message{
 		From:        server.net.id,
 		To:          -1,
@@ -120,7 +118,6 @@ func (server *Server) forwardEdition(command Command) {
 // Used by net to send a message to server
 func (server *Server) SendMessage(action string) {
 	if action == "OkCs" {
-		utils.Info(server.id, "ServSendMessage", "OkCs received")
 		// Request accepted
 		server.EditData(server.command)
 		server.forwardEdition(server.command)

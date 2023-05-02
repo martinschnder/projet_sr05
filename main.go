@@ -4,10 +4,6 @@ import (
 	"flag"
 	. "projet/net"
 	"time"
-	// "fmt"
-	// "container/list"
-	// . "projet/message"
-	// "os"
 )
 
 func main() {
