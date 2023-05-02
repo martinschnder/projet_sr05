@@ -38,7 +38,7 @@ document.getElementById("connecter").onclick = function (evt) {
     let jsonMessage = JSON.parse(evt.data);
     const editor = document.querySelector(".editor");
     editor.innerHTML = "";
-    jsonMessage.Data.forEach(function (line, index) {
+    jsonMessage.Text.forEach(function (line, index) {
       const lineDiv = document.createElement("div");
       lineDiv.classList.add("line");
 

@@ -4,8 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"os"
-	. "projet/message"
-	"projet/utils"
+	"projet/display"
 	. "projet/utils"
 )
 
@@ -14,7 +13,7 @@ const NB_SITES = 3
 type Net struct {
 	id                 int
 	clock              int
-	tab                [NB_SITES]Request
+	requestTab                [NB_SITES]Request
 	messages           chan MessageWrapper
 	server             *Server
 	color              string
@@ -22,27 +21,30 @@ type Net struct {
 	nbExpectedStates   int
 	nbExpectedMessages int
 	state              *State
-	globalStates       *list.List
+	globalState       *list.List
 }
 
 func NewNet(id int, port string, addr string) *Net {
 	n := new(Net)
-	// Identification
+
+	// Identifiant
 	n.id = id
+
 	// Horloge
 	n.clock = 0
-	var tab [NB_SITES]Request
-	n.tab = tab
+
+	var requestTab [NB_SITES]Request
+	n.requestTab = requestTab
 	for i := 0; i < NB_SITES; i++ {
-		n.tab[i] = Request{
+		n.requestTab[i] = Request{
 			RequestType: "release",
 			Stamp:       0,
 		}
 	}
 
-	// Les serveurs communiquent entre eux et agissent d'intermédiaire avec les clients
+	// Les serveurs communiquent entre eux et servent d'intermédiaire avec les clients
 	n.server = NewServer(port, addr, id, n)
-	utils.Info(n.id, "NewNet", "Successfully created server instance")
+	display.Info(n.id, "NewNet", "Successfully created server instance")
 	n.messages = make(chan MessageWrapper)
 
 	// Snapshot
@@ -50,19 +52,19 @@ func NewNet(id int, port string, addr string) *Net {
 	n.initator = false
 	n.nbExpectedStates = 0
 	n.nbExpectedMessages = 0
-	n.state = NewState(id, n.server.data, NB_SITES)
-	n.globalStates = list.New()
+	n.state = NewState(id, n.server.text, NB_SITES)
+	n.globalState = list.New()
 
 	return n
 }
 
-/** ReceiveCSrequest()
+/** ReceiveCSRequest()
 Envoi d'une requete d'accès au document partagé
 **/
-func (n *Net) ReceiveCSrequest() {
-	utils.Info(n.id, "ReceiveCSRequest", "Received CS request from server")
+func (n *Net) ReceiveCSRequest() {
+	display.Info(n.id, "ReceiveCSRequest", "Received CS request from server")
 	n.clock += 1
-	n.tab[n.id] = Request{
+	n.requestTab[n.id] = Request{
 		RequestType: "access",
 		Stamp:       n.clock,
 	}
@@ -86,11 +88,11 @@ Envoi d'une requete de libération du document partagé
 **/
 func (n *Net) receiveCSRelease() {
 	n.clock += 1
-	n.tab[n.id] = Request{
+	n.requestTab[n.id] = Request{
 		RequestType: "release",
 		Stamp:       n.clock,
 	}
-	utils.Info(n.id, "receiveCSRelease", "Release CS release from server")
+	display.Info(n.id, "receiveCSRelease", "Release CS release from server")
 	msg := Message{
 		From:        n.id,
 		To:          -1,
@@ -100,7 +102,7 @@ func (n *Net) receiveCSRelease() {
 		VectClock:   n.state.VectClock,
 		Color:       n.color,
 	}
-  utils.Warning(n.id, "receiveCSRelease", "Quitting critical section")
+  display.Warning(n.id, "receiveCSRelease", "Quitting critical section")
 	go n.writeMessage(msg)
 }
 
@@ -108,15 +110,15 @@ func (n *Net) receiveCSRelease() {
 Envoie le message à la fonction appropiée selon le type de message
 **/
 func (n *Net) receiveExternalMessage(msg Message) {
-	//Incrémentation de l'horloge vectorielle
+	// Incrémentation de l'horloge vectorielle
 	n.state.VectClockIncr(msg.VectClock, NB_SITES)
 
 	if msg.Color == "red" && n.color == "white" {
-		utils.Info(n.id, "receiveSnapshotMessage", fmt.Sprintf("Received snapshot message from %d", msg.From))
-		utils.Warning(n.id, "receiveSnapshotMessage", "Entering in snapshot mode")
+		display.Info(n.id, "receiveSnapshotMessage", fmt.Sprintf("Received snapshot message from %d", msg.From))
+		display.Warning(n.id, "receiveSnapshotMessage", "Entering in snapshot mode")
 
 		n.color = "red"
-		n.globalStates.PushBack(n.state.ToString())
+		n.globalState.PushBack(n.state.ToString())
 		msg := Message{
 			From:        n.id,
 			To:          -1,
@@ -126,7 +128,7 @@ func (n *Net) receiveExternalMessage(msg Message) {
 			VectClock:   n.state.VectClock,
 			Color:       n.color,
 		}
-		utils.Info(n.id, "receiveSnapshotMessage", "Sending state message")
+		display.Info(n.id, "receiveSnapshotMessage", "Sending state message")
 		go n.writeMessage(msg)
 	}
 	if msg.Color == "white" && n.color == "red"  && msg.MessageType != "EndSnapshotMessage" {
@@ -139,7 +141,7 @@ func (n *Net) receiveExternalMessage(msg Message) {
 			VectClock:   n.state.VectClock,
 			Color:       n.color,
 		}
-		utils.Info(n.id, "receiveSnapshotMessage", "Sending prepost message")
+		display.Info(n.id, "receiveSnapshotMessage", "Sending prepost message")
 		go n.writeMessage(newmsg)
 	}
 
@@ -161,7 +163,7 @@ func (n *Net) receiveExternalMessage(msg Message) {
 	case "SnapshotMessage":
 		return
   default:
-    utils.Error(n.id, "receiveExternalMessage", "Unknown message type")
+    display.Error(n.id, "receiveExternalMessage", "Unknown message type")
 	}
 }
 
@@ -172,10 +174,10 @@ func (n *Net) isValidRequest() bool {
 	for i := 0; i < NB_SITES; i++ {
 		//Cette fonction vérifie que la modification peut être faite au niveau temporel
 		if i != n.id {
-			if n.tab[i].Stamp < n.tab[n.id].Stamp {
+			if n.requestTab[i].Stamp < n.requestTab[n.id].Stamp {
 				// On a trouvé une horloge plus faible, on ne peut pas modifier
         		return false
-      		} else if n.tab[i].Stamp == n.tab[n.id].Stamp {
+      		} else if n.requestTab[i].Stamp == n.requestTab[n.id].Stamp {
 				if i < n.id {
 					// On a trouvé une horloge égale, mais l'ordre des sites fait que la modification est impossible
 					return false
@@ -190,9 +192,9 @@ func (n *Net) isValidRequest() bool {
 Traitement d'une demande d'accès, envoie un acquittement
 **/
 func (n *Net) receiveRequestMessage(received_msg Message) {
-	utils.Info(n.id, "receiveRequestMessage", fmt.Sprintf("Received request message from %d", received_msg.From))
+	display.Info(n.id, "receiveRequestMessage", fmt.Sprintf("Received request message from %d", received_msg.From))
 	n.clock = Max(n.clock, received_msg.Stamp) + 1
-	n.tab[received_msg.From] = Request{
+	n.requestTab[received_msg.From] = Request{
 		RequestType: "access",
 		Stamp:       received_msg.Stamp,
 	}
@@ -205,10 +207,10 @@ func (n *Net) receiveRequestMessage(received_msg Message) {
 		VectClock:   n.state.VectClock,
 		Color:       n.color,
 	}
-	utils.Info(n.id, "receiveRequestMessage", fmt.Sprintf("Sending Ack message to %d", received_msg.From))
+	display.Info(n.id, "receiveRequestMessage", fmt.Sprintf("Sending Ack message to %d", received_msg.From))
 	go n.writeMessage(msg)
-	if n.tab[n.id].RequestType == "access" && n.isValidRequest() {
-		utils.Warning(n.id, "MessageHandler", "Entering in critical section")
+	if n.requestTab[n.id].RequestType == "access" && n.isValidRequest() {
+		display.Warning(n.id, "MessageHandler", "Entering in critical section")
 		n.server.SendMessage("OkCs")
 	}
 }
@@ -217,14 +219,14 @@ func (n *Net) receiveRequestMessage(received_msg Message) {
 Traitement d'un message de libération de ressource
 **/
 func (n *Net) receiveReleaseMessage(msg Message) {
-	utils.Info(n.id, "receiveReleaseMessage", fmt.Sprintf("Received release message from %d", msg.From))
+	display.Info(n.id, "receiveReleaseMessage", fmt.Sprintf("Received release message from %d", msg.From))
 	n.clock = Max(n.clock, msg.Stamp) + 1
-	n.tab[msg.From] = Request{
+	n.requestTab[msg.From] = Request{
 		RequestType: "release",
 		Stamp:       msg.Stamp,
 	}
-	if n.tab[n.id].RequestType == "access" && n.isValidRequest() {
-		utils.Warning(n.id, "receiveReleaseMessage", "Entering in critical section")
+	if n.requestTab[n.id].RequestType == "access" && n.isValidRequest() {
+		display.Warning(n.id, "receiveReleaseMessage", "Entering in critical section")
 		n.server.SendMessage("OkCs")
 	}
 }
@@ -233,17 +235,17 @@ func (n *Net) receiveReleaseMessage(msg Message) {
 Traitement de la réception d'un message d'acquittement
 **/
 func (n *Net) receiveAckMessage(msg Message) {
-	utils.Info(n.id, "receiveAckMessage", fmt.Sprintf("Received ack message from %d", msg.From))
+	display.Info(n.id, "receiveAckMessage", fmt.Sprintf("Received ack message from %d", msg.From))
 	n.clock = Max(n.clock, msg.Stamp) + 1
 	//Envoi de l'acquittement si pas déjà fait
-	if n.tab[msg.From].RequestType != "access" {
-		n.tab[msg.From] = Request{
+	if n.requestTab[msg.From].RequestType != "access" {
+		n.requestTab[msg.From] = Request{
 			RequestType: "ack",
 			Stamp:       msg.Stamp,
 		}
 	}
-	if n.tab[n.id].RequestType == "access" && n.isValidRequest() {
-		utils.Warning(n.id, "receiveAckMessage", "Entering in critical section")
+	if n.requestTab[n.id].RequestType == "access" && n.isValidRequest() {
+		display.Warning(n.id, "receiveAckMessage", "Entering in critical section")
 		n.server.SendMessage("OkCs")
 	}
 }
@@ -252,19 +254,19 @@ func (n *Net) receiveAckMessage(msg Message) {
 Réception d'un message d'état (ignoré si le site n'est pas l'initiateur)
 **/
 func (n *Net) receiveStateMessage(msg Message) {
-	utils.Info(n.id, "receiveStateMessage", fmt.Sprintf("Received state message from %d", msg.From))
+	display.Info(n.id, "receiveStateMessage", fmt.Sprintf("Received state message from %d", msg.From))
 	state := StateFromString(msg.Content)
 	if n.initator {
 		// Sauvegarde de l'état et calcul du nombre d'états à recevoir et de messages attendus.
-		n.globalStates.PushBack(state.ToString())
+		n.globalState.PushBack(state.ToString())
 		n.nbExpectedStates -= 1
 		n.nbExpectedMessages += state.Review
 
 		str := fmt.Sprintf("%d states and %d prepost messages to wait to finish the snapshot", n.nbExpectedStates, n.nbExpectedMessages)
-		utils.Info(n.id, "receiveStateMessage", str)
+		display.Info(n.id, "receiveStateMessage", str)
 
 		if n.nbExpectedStates == 0 && n.nbExpectedMessages == 0 {
-			utils.Warning(n.id, "receiveStateMessage", "Finish snapshot")
+			display.Warning(n.id, "receiveStateMessage", "Finish snapshot")
 
 			file, fileErr := os.Create("snapshot.txt")
 			if fileErr != nil {
@@ -272,14 +274,14 @@ func (n *Net) receiveStateMessage(msg Message) {
 				return
 			}
 
-			for i := n.globalStates.Front(); i != nil; i = i.Next() {
+			for i := n.globalState.Front(); i != nil; i = i.Next() {
 				fmt.Fprintf(file, "%+v\n", i.Value)
 			}
 
 			n.reinitializeAfterSnapshot()
 		}
 	} else {
-		utils.Info(n.id, "receiveStateMessage", "not initiator, resending message")
+		display.Info(n.id, "receiveStateMessage", "not initiator, resending message")
 		go n.writeMessage(msg)
 	}
 }
@@ -288,18 +290,18 @@ func (n *Net) receiveStateMessage(msg Message) {
 réception d'un message étiqueté par un site comme étant un message prépost. Ignoré si le site i n'est pas initiateur
 **/
 func (n *Net) receivePrepostMessage(msg Message) {
-	utils.Info(n.id, "receivePrepostMessage", "Received prepost message")
+	display.Info(n.id, "receivePrepostMessage", "Received prepost message")
 	if n.initator {
 		n.nbExpectedMessages -= 1
 
 		//Enregistrement du message prepost dans l'état.
-		n.globalStates.PushBack(msg.Content)
+		n.globalState.PushBack(msg.Content)
 
 		str := fmt.Sprintf("%d states and %d prepost messages to wait to finish the snapshot", n.nbExpectedStates, n.nbExpectedMessages)
-		utils.Info(n.id, "receivePrepostMessage", str)
+		display.Info(n.id, "receivePrepostMessage", str)
 
 		if n.nbExpectedStates == 0 && n.nbExpectedMessages == 0 {
-			utils.Warning(n.id, "receivePrepostMessage", "Finish snapshot")
+			display.Warning(n.id, "receivePrepostMessage", "Finish snapshot")
 
 			file, fileErr := os.Create("snapshot.txt")
 			if fileErr != nil {
@@ -307,25 +309,25 @@ func (n *Net) receivePrepostMessage(msg Message) {
 				return
 			}
 
-			for i := n.globalStates.Front(); i != nil; i = i.Next() {
+			for i := n.globalState.Front(); i != nil; i = i.Next() {
 				fmt.Fprintf(file, "%+v\n", i.Value)
 			}
 
 			n.reinitializeAfterSnapshot()
 		}
 	} else {
-		utils.Info(n.id, "receivePrepostMessage", "not initiator, msg resend")
+		display.Info(n.id, "receivePrepostMessage", "not initiator, msg resend")
 		go n.writeMessage(msg)
 	}
 }
 
 /** reinitializeAfterSnapshot()
-Réinitialisation pour la réalisation d'autres snapshots
+Réinitialisation du site initiateur pour la réalisation d'autres snapshots
 **/
 func (n *Net) reinitializeAfterSnapshot() {
 	n.initator = false
 	n.color = "white"
-	n.globalStates = list.New()
+	n.globalState = list.New()
 	n.nbExpectedStates = 0
 	n.nbExpectedMessages = 0
 	msg := Message{
@@ -337,7 +339,7 @@ func (n *Net) reinitializeAfterSnapshot() {
 		VectClock:   n.state.VectClock,
 		Color:       n.color,
 	}
-	utils.Info(n.id, "reinitializeAfterSnapshot", "Send EndSnapshotMessage")
+	display.Info(n.id, "reinitializeAfterSnapshot", "Send EndSnapshotMessage")
 	go n.writeMessage(msg)
 }
 
@@ -346,7 +348,7 @@ Le snapshot initié par un autre site est terminé
 **/
 func (n *Net) receiveEndSnapshotMessage() {
 	n.color = "white"
-	n.globalStates = list.New()
+	n.globalState = list.New()
 }
 
 /** ReadMessage()
@@ -428,13 +430,13 @@ Fonction appellée par le client pour initier le snapshot à partir du site i.
 func (n *Net) InitSnapshot() {
 	n.color = "red"
 	n.initator = true
-	n.globalStates.PushBack(n.state.ToString())
+	n.globalState.PushBack(n.state.ToString())
 	n.nbExpectedStates = NB_SITES - 1
 	n.nbExpectedMessages = n.state.Review
 
-	utils.Warning(n.id, "InitSnapshot", "Snapshot initialisation")
+	display.Warning(n.id, "InitSnapshot", "Snapshot initialisation")
 	str := fmt.Sprintf("%d states and %d prepost messages to wait to finish the snapshot", n.nbExpectedStates, n.nbExpectedMessages)
-	utils.Info(n.id, "receivePrepostMessage", str)
+	display.Info(n.id, "receivePrepostMessage", str)
 
 	msg := Message{
 		From:        n.id,

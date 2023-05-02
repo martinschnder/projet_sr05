@@ -4,13 +4,13 @@ Bordeau Oceane, Gharbi Wassim, Scheidler Nicolas, Schneider Martin
 
 ## Presentation
 
-Notre projet permet d'accèder à un document texte en lecture/écriture depuis plusieurs sites de manière simulatanée. L'édition de ce document correspond à la section critique du programme. La communication des sites est assurée par le biais d'un anneau.
+Notre projet permet d'accèder à un document texte en lecture/écriture depuis plusieurs sites de manière simultanée. L'édition de ce document correspond à la section critique du programme. La communication des sites est assurée par le biais d'un anneau.
 Pour répondre à nos objectifs, un algortihme réparti a été implémenté. Celui-ci est composé de plusieurs algortihmes fondamentaux :
 
-- Un algorithme de file d'attente : Coordonner les demandes d'entrée en section critique entre les différents sites.
-- Un algorithme de sauvegarde : Capturer un instantané cohérent de l'état de l'éxécution (document, demandes en attente, traffic réseau).
+- Un algorithme de file d'attente : pour coordonner les demandes d'entrée en section critique entre les différents sites ;
+- Un algorithme de sauvegarde : pour capturer un instantané cohérent de l'état de l'éxécution (document, demandes en attente, traffic réseau).
 
-Une interface web est également disponible.
+Une interface web est également accessible.
 
 ## Installation
 
@@ -62,11 +62,11 @@ Le code a été écrit en se basant sur l'algorithme de file d'attente fourni (l
 La file d'attente se base sur les deux attributs de la classe net :
 
 - `clock int ` : l'horloge logique du site
-- `tab [NB_SITES]Request` : Etat des requetes de demandes d'accès en section critique
+- `requestTab [NB_SITES]Request` : Etat des requetes de demandes d'accès en section critique
 
 A partir de l'algorithme du cours, des méthodes ont été écrites :
 
-- `func (n *Net) ReceiveCSrequest()` : Envoi d'une requete d'accès au document partagé
+- `func (n *Net) ReceiveCSRequest()` : Envoi d'une requete d'accès au document partagé
 - `func (n *Net) receiveCSRelease()` : Envoi d'une requete de libération du document partagé
 - `func (n *Net) receiveRequestMessage(received_msg Message)` : Traitement d'une requete d'accès au document partagé reçue
 - `func (n *Net) receiveReleaseMessage(msg Message)` : Traitement d'un message de liberation du document partagé reçu
@@ -87,7 +87,7 @@ Les snapshots se basent sur les attributs suivants de la classe net :
 - `nbExpectedStates int` : Nombre de sites du réseau
 - `nbExpectedMessages int`: Nombre de messages envoyés mais non reçu
 - `state *State`:
-- `globalStates *list.List`:
+- `globalState *list.List`:
 
 A partir de l'algorithme 11, des méthodes ont été écrites :
 
@@ -126,7 +126,7 @@ Enfin, nous avons pu implémenter le code en déroulant l'algorithme 11.
   	type Net struct {
   id       int
   clock    int
-  tab      [NB_SITES]Request
+  requestTab      [NB_SITES]Request
   messages chan MessageWrapper
   server   *Server
   color 	 string
@@ -134,12 +134,12 @@ Enfin, nous avons pu implémenter le code en déroulant l'algorithme 11.
   nbExpectedStates int
   nbExpectedMessages int
   state 	*State
-  globalStates *list.List
+  globalState *list.List
   }
   ```
   - Methodes
     - `NewNet(id int, port string, addr string) *Net` : Constructeur
-    - `func (n *Net) ReceiveCSrequest()` : Envoi d'une requete d'accès au document partagé
+    - `func (n *Net) ReceiveCSRequest()` : Envoi d'une requete d'accès au document partagé
     - `func (n *Net) receiveCSRelease()` : Envoi d'une requete de libération du document partagé
     - `func (n *Net) receiveExternalMessage(msg Message)` : Appel de la fonction approprié selon le type du message
     - `func (n *Net) receiveRequestMessage(received_msg Message)` : Traitement d'une requete d'accès au document partagé reçue
@@ -162,7 +162,7 @@ Enfin, nous avons pu implémenter le code en déroulant l'algorithme 11.
   	type Server struct {
   socket *websocket.Conn
   mutex *sync.Mutex
-  data []string
+  text []string
   id int
   net *Net
   command Command
@@ -174,7 +174,7 @@ Enfin, nous avons pu implémenter le code en déroulant l'algorithme 11.
     - `func (server *Server)Send()` :
     - `func (server *Server)closeSocket()` :
     - `func (server *Server)receive()` :
-    - `func (server *Server)EditData(command Command)` :
+    - `func (server *Server)EditText(command Command)` :
     - `func (server *Server)forwardEdition(command Command)` :
     - `func (server *Server)SendMessage(action string)` :
 
@@ -228,12 +228,12 @@ Enfin, nous avons pu implémenter le code en déroulant l'algorithme 11.
 - Fonctions :
   - `func MessageFromString(raw string) Message` : Formatte une string sous forme de message pour les entrées standards.
   - `func vectClockToString(vectClock []int)` string : Transforme une horloge en string
-  - `func vectClockToArray(raw string) []int` : Horloge sous forme de tableau
+  - `func vectClockFromString(raw string) []int` : Horloge sous forme de tableau
   - `func (msg Message) ToString() string` : Message sous forme de string
   - `func (msg Message) ConcernSnapshot() bool` :
   - `func (msg Message) Send()` : Envoi d'un message
-  - `func ParseCommand(raw string) Command` : Parse une string pour la mettre sous forme de command
-  - `func (command Command) ToString() string` : fonction réciproque de ParseCommand(raw string)
+  - `func CommandFromString(raw string) Command` : Parse une string pour la mettre sous forme de command
+  - `func (command Command) ToString() string` : fonction réciproque de CommandFromString(raw string)
   - `func NewState(id int, text []string, nbSites int) *State` : Constructeur
   - `func (s *State)VectClockIncr(otherClock []int, nbSites int)` :
   - `func (s *State) ToString() string` :
