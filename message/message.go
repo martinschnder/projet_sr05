@@ -79,7 +79,6 @@ func (msg Message) ConcernSnapshot() bool {
 }
 
 func (msg Message) Send() {
-	utils.Info(msg.From, "SendMessage", "Sending message")
 	fmt.Printf(msg.ToString())
 }
 
