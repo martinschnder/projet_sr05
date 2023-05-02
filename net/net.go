@@ -75,7 +75,7 @@ func (n *Net) receiveCSRelease() {
 		RequestType: "release",
 		Stamp:       n.clock,
 	}
-	utils.Info(n.id, "MessageHandler", "Server CS release received")
+	utils.Info(n.id, "receiveCSRelease", "Server CS release received")
 	msg := Message{
 		From:        n.id,
 		To:          -1,
@@ -85,6 +85,7 @@ func (n *Net) receiveCSRelease() {
 		VectClock:   n.state.VectClock,
 		Color:       n.color,
 	}
+  utils.Warning(n.id, "receiveCSRelease", "Quitting critical section")
 	go n.writeMessage(msg)
 }
 
@@ -149,7 +150,6 @@ func (n *Net) isValidRequest() bool {
       }
 		}
 	}
-	utils.Warning(n.id, "isValidRequest", "true")
 	return true
 }
 
@@ -169,13 +169,12 @@ func (n *Net) receiveReleaseMessage(msg Message) {
 func (n *Net) receiveAckMessage(msg Message) {
 	utils.Info(n.id, "receiveAckMessage", fmt.Sprintf("Received ack message from %d", msg.From))
 	n.clock = Max(n.clock, msg.Stamp) + 1
-	if n.tab[msg.From].RequestType == "release" {
+	if n.tab[msg.From].RequestType != "access" {
 		n.tab[msg.From] = Request{
 			RequestType: "ack",
 			Stamp:       msg.Stamp,
 		}
 	}
-	utils.Warning(n.id, "receiveAckMessage", "request : "+n.tab[n.id].RequestType)
 	if n.tab[n.id].RequestType == "access" && n.isValidRequest() {
 		utils.Warning(n.id, "receiveAckMessage", "Entering in critical section")
 		n.server.SendMessage("OkCs")

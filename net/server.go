@@ -5,12 +5,10 @@ import (
 	"net/http"
 	. "projet/message"
 	"projet/utils"
-	"sync"
 )
 
 type Server struct {
 	socket  *websocket.Conn
-	mutex   *sync.Mutex
 	data    []string
 	id      int
 	net     *Net
@@ -21,7 +19,6 @@ func NewServer(port string, addr string, id int, net *Net) *Server {
 	server := new(Server)
 	server.socket = nil
 	server.net = net
-	server.mutex = &sync.Mutex{}
 	server.data = make([]string, 30)
 	server.data[0] = "Hello World!"
 	server.id = id
@@ -74,7 +71,6 @@ func (server *Server) receive() {
 			break
 		}
 
-		server.mutex.Lock()
 		command := ParseCommand(string(rcvmsg))
 		if command.Action == "Snapshot" {
 			server.net.InitSnapshot()
@@ -83,7 +79,6 @@ func (server *Server) receive() {
 			server.net.ReceiveCSrequest()
 		}
 		utils.Info(server.id, "ws_receive", "Received "+string(command.Action) + " action")
-		server.mutex.Unlock()
 	}
 }
 
