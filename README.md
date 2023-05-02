@@ -185,7 +185,7 @@ Enfin, nous avons pu implémenter le code en déroulant l'algorithme.
     - `func (n *Net) receiveCSRelease()` : Envoi d'une requete de libération du document partagé
     - `func (n *Net) receiveExternalMessage(msg Message)` : Appel de la fonction approprié selon le type du message
     - `func (n *Net) receiveRequestMessage(received_msg Message)` : Traitement d'une requete d'accès au document partagé reçue
-    - `func (n *Net) isLastRequest() bool` : Comparaison des estampilles pour valider que le site a emis la quete la plus vieille et donc peut accéder à la section critique
+    - `func (n *Net) isValidRequest() bool` : Comparaison des estampilles pour valider que le site a emis la quete la plus vieille et donc peut accéder à la section critique
     - `func (n *Net) receiveReleaseMessage(msg Message)` : Traitement d'un message de liberation du document partagé reçu
     - `func (n *Net) receiveAckMessage(msg Message)` : Traitement d'un message d'acquittement reçu
     - `func (n *Net) receiveStateMessage(msg Message)` : Traitement d'un message de type état
@@ -203,7 +203,6 @@ Enfin, nous avons pu implémenter le code en déroulant l'algorithme.
   ```go
   type Server struct {
       socket *websocket.Conn
-      mutex *sync.Mutex
       text []string
       id int
       net *Net
