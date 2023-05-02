@@ -194,3 +194,8 @@ func StateFromString(raw string) State {
 	}
 	return state
 }
+
+type MessageToClient struct {
+  Data []string
+  Stamp int
+}
