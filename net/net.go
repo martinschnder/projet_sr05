@@ -110,13 +110,13 @@ func (n *Net) receiveExternalMessage(msg Message) {
 		utils.Info(n.id, "receiveSnapshotMessage", "Sending state message")
 		go n.writeMessage(msg)
 	}
-	if msg.Color == "white" && n.color == "red" {
+	if msg.Color == "white" && n.color == "red"  && msg.MessageType != "EndSnapshotMessage" {
 		newmsg := Message{
 			From:        n.id,
 			To:          -1,
-			Content:     msg.ToStringForContent()
+			Content:     msg.ToStringForContent(),
 			Stamp:       n.clock,
-			MessageType: "StateMessage",
+			MessageType: "PrepostMessage",
 			VectClock:   n.state.VectClock,
 			Color:       n.color,
 		}
@@ -250,7 +250,7 @@ func (n *Net) receivePrepostMessage(msg Message) {
 	if n.initator {
 		n.nbExpectedMessages -= 1
 
-		n.globalStates.PushBack(msg.ToString())
+		n.globalStates.PushBack(msg.Content)
 
 		str := fmt.Sprintf("%d states and %d prepost messages to wait to finish the snapshot", n.nbExpectedStates, n.nbExpectedMessages)
 		utils.Info(n.id, "receivePrepostMessage", str)
