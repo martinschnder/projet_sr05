@@ -74,6 +74,11 @@ func (msg Message) ToString() string {
 	return formatted_str
 }
 
+func (msg Message) ToStringForContent() string {
+	formatted_str := fmt.Sprintf("°+From+%d°+To+%d°+Content+%s°+Stamp+%d°+MessageType+%s°+VectorClock+%s°+Color+%s", msg.From, msg.To, msg.Content, msg.Stamp, msg.MessageType, vectClockToString(msg.VectClock), msg.Color)
+	return formatted_str
+}
+
 func (msg Message) ConcernSnapshot() bool {
 	return msg.MessageType == "StateMessage" || msg.MessageType == "PrepostMessage"
 }
