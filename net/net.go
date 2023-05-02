@@ -27,7 +27,9 @@ type Net struct {
 
 func NewNet(id int, port string, addr string) *Net {
 	n := new(Net)
+	// Identification
 	n.id = id
+	// Horloge
 	n.clock = 0
 	var tab [NB_SITES]Request
 	n.tab = tab
@@ -37,18 +39,26 @@ func NewNet(id int, port string, addr string) *Net {
 			Stamp:       0,
 		}
 	}
+
+	// Les serveurs communiquent entre eux et agissent d'intermédiaire avec les clients
 	n.server = NewServer(port, addr, id, n)
 	utils.Info(n.id, "NewNet", "Successfully created server instance")
 	n.messages = make(chan MessageWrapper)
+
+	// Snapshot
 	n.color = "white"
 	n.initator = false
 	n.nbExpectedStates = 0
 	n.nbExpectedMessages = 0
 	n.state = NewState(id, n.server.data, NB_SITES)
 	n.globalStates = list.New()
+
 	return n
 }
 
+/** ReceiveCSrequest()
+Envoi d'une requete d'accès au document partagé
+**/
 func (n *Net) ReceiveCSrequest() {
 	utils.Info(n.id, "ReceiveCSRequest", "received CS request from server")
 	n.clock += 1
@@ -57,6 +67,7 @@ func (n *Net) ReceiveCSrequest() {
 		Stamp:       n.clock,
 	}
 
+	// Création du message
 	msg := Message{
 		From:        n.id,
 		To:          -1,
@@ -66,9 +77,13 @@ func (n *Net) ReceiveCSrequest() {
 		VectClock:   n.state.VectClock,
 		Color:       n.color,
 	}
+	
 	n.writeMessage(msg)
 }
 
+/** receiveCSRelease()
+Envoi d'une requete de libération du document partagé
+**/
 func (n *Net) receiveCSRelease() {
 	n.clock += 1
 	n.tab[n.id] = Request{
@@ -89,7 +104,11 @@ func (n *Net) receiveCSRelease() {
 	go n.writeMessage(msg)
 }
 
+/** receiveExternalMessage()
+Envoie le message à la fonction appropiée selon le type de message
+**/
 func (n *Net) receiveExternalMessage(msg Message) {
+	//Incrémentation de l'horloge vectorielle
 	n.state.VectClockIncr(msg.VectClock, NB_SITES)
 
 	if msg.Color == "red" && n.color == "white" {
@@ -146,6 +165,33 @@ func (n *Net) receiveExternalMessage(msg Message) {
 	}
 }
 
+/** isValidRequest()
+vérifie que la reqûete d'accès du site i est valide et que le site i peut modifier la ressource
+**/
+func (n *Net) isValidRequest() bool {
+	for i := 0; i < NB_SITES; i++ {
+		//Cette fonction vérifie que la modification peut être faite au niveau temporel
+		if i != n.id {
+			if n.tab[i].Stamp < n.tab[n.id].Stamp {
+				// On a trouvé une horloge plus faible, on ne peut pas modifier
+				utils.Warning(n.id, "isValidRequest", "false")
+        		return false
+      		} else if n.tab[i].Stamp == n.tab[n.id].Stamp {
+				if i < n.id {
+					// On a trouvé une horloge égale, mais l'ordre des sites fait que la modification est impossible
+					utils.Warning(n.id, "isValidRequest", "false")
+					return false
+				}
+      		}
+		}
+	}
+	utils.Warning(n.id, "isValidRequest", "true")
+	return true
+}
+
+/** receiveRequestMessage()
+Traitement d'une demande d'accès, envoie un acquittement
+**/
 func (n *Net) receiveRequestMessage(received_msg Message) {
 	utils.Info(n.id, "receiveRequestMessage", fmt.Sprintf("Received request message from %d", received_msg.From))
 	n.clock = Max(n.clock, received_msg.Stamp) + 1
@@ -170,21 +216,9 @@ func (n *Net) receiveRequestMessage(received_msg Message) {
 	}
 }
 
-func (n *Net) isValidRequest() bool {
-	for i := 0; i < NB_SITES; i++ {
-		if i != n.id {
-      if n.tab[i].Stamp < n.tab[n.id].Stamp {
-        return false
-      } else if n.tab[i].Stamp == n.tab[n.id].Stamp {
-        if i < n.id {
-          return false
-        }
-      }
-		}
-	}
-	return true
-}
-
+/** receiveReleaseMessage()
+Traitement d'un message de libération de ressource
+**/
 func (n *Net) receiveReleaseMessage(msg Message) {
 	utils.Info(n.id, "receiveReleaseMessage", fmt.Sprintf("Received release message from %d", msg.From))
 	n.clock = Max(n.clock, msg.Stamp) + 1
@@ -198,9 +232,13 @@ func (n *Net) receiveReleaseMessage(msg Message) {
 	}
 }
 
+/** receiveAckMessage()
+Traitement de la réception d'un message d'acquittement
+**/
 func (n *Net) receiveAckMessage(msg Message) {
 	utils.Info(n.id, "receiveAckMessage", fmt.Sprintf("Received ack message from %d", msg.From))
 	n.clock = Max(n.clock, msg.Stamp) + 1
+	//Envoi de l'acquittement si pas déjà fait
 	if n.tab[msg.From].RequestType != "access" {
 		n.tab[msg.From] = Request{
 			RequestType: "ack",
@@ -213,10 +251,14 @@ func (n *Net) receiveAckMessage(msg Message) {
 	}
 }
 
+/** receiveStateMessage()
+Réception d'un message d'état (ignoré si le site n'est pas l'initiateur)
+**/
 func (n *Net) receiveStateMessage(msg Message) {
 	utils.Info(n.id, "receiveStateMessage", fmt.Sprintf("Received state message from %d", msg.From))
 	state := StateFromString(msg.Content)
 	if n.initator {
+		// Sauvegarde de l'état et calcul du nombre d'états à recevoir et de messages attendus.
 		n.globalStates.PushBack(state.ToString())
 		n.nbExpectedStates -= 1
 		n.nbExpectedMessages += state.Review
@@ -245,11 +287,15 @@ func (n *Net) receiveStateMessage(msg Message) {
 	}
 }
 
+/** receivePrepostMessage()
+réception d'un message étiqueté par un site comme étant un message prépost. Ignoré si le site i n'est pas initiateur
+**/
 func (n *Net) receivePrepostMessage(msg Message) {
 	utils.Info(n.id, "receivePrepostMessage", "Received prepost message")
 	if n.initator {
 		n.nbExpectedMessages -= 1
 
+		//Enregistrement du message prepost dans l'état.
 		n.globalStates.PushBack(msg.Content)
 
 		str := fmt.Sprintf("%d states and %d prepost messages to wait to finish the snapshot", n.nbExpectedStates, n.nbExpectedMessages)
@@ -276,6 +322,9 @@ func (n *Net) receivePrepostMessage(msg Message) {
 	}
 }
 
+/** reinitializeAfterSnapshot()
+Réinitialisation pour la réalisation d'autres snapshots
+**/
 func (n *Net) reinitializeAfterSnapshot() {
 	n.initator = false
 	n.color = "white"
@@ -295,11 +344,17 @@ func (n *Net) reinitializeAfterSnapshot() {
 	go n.writeMessage(msg)
 }
 
+/** receiveEndSnapshotMessage()
+Le snapshot initié par un autre site est terminé
+**/
 func (n *Net) receiveEndSnapshotMessage() {
 	n.color = "white"
 	n.globalStates = list.New()
 }
 
+/** ReadMessage()
+Lit les message sur l'entrée standard et les envoie ensuite sur le channel de communication du site pour qu'ils soient traités par MessageHandler().
+**/
 func (n *Net) ReadMessage() {
 	var raw string
 	for {
@@ -316,6 +371,9 @@ func (n *Net) ReadMessage() {
 	}
 }
 
+/** writeMessage()
+Ajout d'un message sur le canal de communication. Le message sera envoyé par MessageHandler()
+**/
 func (n *Net) writeMessage(msg Message) {
 	n.messages <- (MessageWrapper{
 		Action:  "send",
@@ -323,38 +381,54 @@ func (n *Net) writeMessage(msg Message) {
 	})
 }
 
+/** MessageHandler()
+Lit les messages du site et les traite.
+Gère les envois et les réceptions.
+**/
 func (n *Net) MessageHandler() {
 	for {
+		//Lecture des messages en attente de traitement
 		wrapperItem := <-n.messages
 		var msg = wrapperItem.Message
 		if wrapperItem.Action == "send" {
+			//Le message est propagé sur l'anneau
+			utils.Info(n.id, "MessageHandler", "Spreading message on the ring")
 			if !msg.ConcernSnapshot() {
 				n.state.Review += 1
 			}
+			// Écriture du message sur la sortie standard
 			msg.Send()
 		} else if wrapperItem.Action == "process" {
 			if msg.To == n.id {
+				// Message destiné pour le site i
 				n.state.Review -= 1
 				n.receiveExternalMessage(msg)
-			} else if msg.To == -1 && msg.From != n.id { // message for all
-				// process and spread the message on the ring if it doesn't concern the snapshot
+			} else if msg.To == -1 && msg.From != n.id {
+				// Message pour tous
+				// Traitement du message et on continue de le propager
 				if !msg.ConcernSnapshot() {
 					msg.Send()
 				}
 				n.receiveExternalMessage(msg)
-			} else { // message not for us
-				// forward the message
+			} else {
+				// Message non destiné au site i,
+				// On le transfère (continue la propagation)
 				msg.Send()
 			}
 		}
-		// time.Sleep(time.Duration(1) * time.Second)
 	}
 }
 
+/** SendMessageFromServer()
+Fonction utilisée pour envoyer un message depuis le client.
+**/
 func (n *Net) SendMessageFromServer(msg Message) {
 	go n.writeMessage(msg)
 }
 
+/** InitSnapshot()
+Fonction appellée par le client pour initier le snapshot à partir du site i.
+**/
 func (n *Net) InitSnapshot() {
 	n.color = "red"
 	n.initator = true

@@ -29,6 +29,9 @@ func NewServer(port string, addr string, id int, net *Net) *Server {
 	return server
 }
 
+/** createSocket()
+Crée le socket auquel se connectera le client web
+**/
 func (server *Server) createSocket(w http.ResponseWriter, r *http.Request) {
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
@@ -44,6 +47,9 @@ func (server *Server) createSocket(w http.ResponseWriter, r *http.Request) {
 	server.Send()
 }
 
+/** Send()
+Envoie le message au client Web
+**/
 func (server *Server) Send() {
 	if server.socket == nil {
 		utils.Error(server.id, "ws_send", "Websocket is closed")
@@ -61,11 +67,17 @@ func (server *Server) Send() {
 	}
 }
 
+/** closeSocket()
+Ferme le socket
+**/
 func (server *Server) closeSocket() {
   utils.Info(server.id, "ws_close", "End of receptions : closing socket")
 	server.socket.Close()
 }
 
+/** receive()
+Traite la réception d'un message en provenance du client Web
+**/
 func (server *Server) receive() {
 	defer server.closeSocket()
 	for {
@@ -79,6 +91,7 @@ func (server *Server) receive() {
 		if command.Action == "Snapshot" {
 			server.net.InitSnapshot()
 		} else {
+			// La commande est sauvegardée pour plus tard, une fois les acquittements reçus
 			server.command = command
 			server.net.ReceiveCSrequest()
 		}
@@ -86,6 +99,9 @@ func (server *Server) receive() {
 	}
 }
 
+/** EditData()
+Gère l'action et effectue la commande
+**/
 func (server *Server) EditData(command Command) {
 	switch command.Action {
 	case "Remplacer":
@@ -101,6 +117,9 @@ func (server *Server) EditData(command Command) {
 	server.Send()
 }
 
+/** forwardEdition()
+Propage la modification auprès de tous les sites
+**/
 func (server *Server)forwardEdition(command Command) {
 	utils.Info(server.id, "forwardEdition", "Server forwarding edition")
   server.net.SendMessageFromServer(Message{
@@ -111,10 +130,11 @@ func (server *Server)forwardEdition(command Command) {
     MessageType: "EditMessage",
     VectClock: 	 server.net.state.VectClock,
     Color: server.net.color,
-  })
-}
+  }}
 
-// Used by net to send a message to server
+/** SendMessage()
+Utilisée par le site. Selon le message, autorise la modification ou effectue une modification en provenance d'un autre site
+**/
 func (server *Server) SendMessage(action string) {
 	if action == "OkCs" {
 		// Request accepted
