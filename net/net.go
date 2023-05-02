@@ -92,6 +92,38 @@ func (n *Net) receiveCSRelease() {
 func (n *Net) receiveExternalMessage(msg Message) {
 	n.state.VectClockIncr(msg.VectClock, NB_SITES)
 
+	if msg.Color == "red" && n.color == "white" {
+		utils.Info(n.id, "receiveSnapshotMessage", fmt.Sprintf("Received snapshot message from %d", msg.From))
+		utils.Warning(n.id, "receiveSnapshotMessage", "Entering in snapshot mode")
+
+		n.color = "red"
+		n.globalStates.PushBack(n.state.ToString())
+		msg := Message{
+			From:        n.id,
+			To:          -1,
+			Content:     n.state.ToString(),
+			Stamp:       n.clock,
+			MessageType: "StateMessage",
+			VectClock:   n.state.VectClock,
+			Color:       n.color,
+		}
+		utils.Info(n.id, "receiveSnapshotMessage", "Sending state message")
+		go n.writeMessage(msg)
+	}
+	if msg.Color == "white" && n.color == "red" {
+		newmsg := Message{
+			From:        n.id,
+			To:          -1,
+			Content:     msg.ToStringForContent()
+			Stamp:       n.clock,
+			MessageType: "StateMessage",
+			VectClock:   n.state.VectClock,
+			Color:       n.color,
+		}
+		utils.Info(n.id, "receiveSnapshotMessage", "Sending prepost message")
+		go n.writeMessage(newmsg)
+	}
+
 	switch msg.MessageType {
 	case "LockRequestMessage":
 		n.receiveRequestMessage(msg)
@@ -101,14 +133,14 @@ func (n *Net) receiveExternalMessage(msg Message) {
 		n.receiveAckMessage(msg)
 	case "EditMessage":
 		n.server.SendMessage(msg.Content)
-	case "SnapshotMessage":
-		n.receiveSnapshotMessage(msg)
 	case "StateMessage":
 		n.receiveStateMessage(msg)
 	case "PrepostMessage":
 		n.receivePrepostMessage(msg)
 	case "EndSnapshotMessage":
 		n.receiveEndSnapshotMessage()
+	case "SnapshotMessage":
+		return
   default:
     utils.Error(n.id, "receiveExternalMessage", "Unknown message type")
 	}
@@ -178,32 +210,6 @@ func (n *Net) receiveAckMessage(msg Message) {
 	if n.tab[n.id].RequestType == "access" && n.isValidRequest() {
 		utils.Warning(n.id, "receiveAckMessage", "Entering in critical section")
 		n.server.SendMessage("OkCs")
-	}
-}
-
-func (n *Net) receiveSnapshotMessage(msg Message) {
-	utils.Info(n.id, "receiveSnapshotMessage", fmt.Sprintf("Received snapshot message from %d", msg.From))
-	if msg.Color == "red" && n.color == "white" {
-		utils.Warning(n.id, "receiveSnapshotMessage", "Entering in snapshot mode")
-
-		n.color = "red"
-		n.globalStates.PushBack(n.state.ToString())
-		msg := Message{
-			From:        n.id,
-			To:          -1,
-			Content:     n.state.ToString(),
-			Stamp:       n.clock,
-			MessageType: "StateMessage",
-			VectClock:   n.state.VectClock,
-			Color:       n.color,
-		}
-		utils.Info(n.id, "receiveSnapshotMessage", "Sending state message")
-		go n.writeMessage(msg)
-	}
-	if msg.Color == "white" && n.color == "red" {
-		utils.Info(n.id, "receiveSnapshotMessage", "Change to prepost message")
-		msg.MessageType = "PrepostMessage"
-		go n.writeMessage(msg)
 	}
 }
 

@@ -97,17 +97,17 @@ func (server *Server) EditData(command Command) {
 	server.Send()
 }
 
-func (server *Server) forwardEdition(command Command) {
-  utils.Info(server.id, "forwardEdition", "Server forwarding edition")
-	server.net.SendMessageFromServer(Message{
-		From:        server.net.id,
-		To:          -1,
-		Content:     command.ToString(),
-		Stamp:       server.net.clock,
-		MessageType: "EditMessage",
-		VectClock:   server.net.state.VectClock,
-		Color:       "white",
-	})
+func (server *Server)forwardEdition(command Command) {
+	utils.Info(server.id, "forwardEdition", "Server forwarding edition")
+  server.net.SendMessageFromServer(Message{
+    From: server.net.id,
+    To: -1,
+    Content: command.ToString(),
+    Stamp: server.net.clock,
+    MessageType: "EditMessage",
+    VectClock: 	 server.net.state.VectClock,
+    Color: server.net.color,
+  })
 }
 
 // Used by net to send a message to server
