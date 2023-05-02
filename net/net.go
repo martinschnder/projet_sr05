@@ -352,7 +352,7 @@ func (n *Net) receiveEndSnapshotMessage() {
 }
 
 /** ReadMessage()
-Lit les message sur l'entrée standard et les envoie ensuite sur le channel de communication du site pour qu'ils soient traités par MessageHandler().
+Lit les messages sur l'entrée standard et les envoie ensuite sur le channel de communication du site pour qu'ils soient traités par MessageHandler().
 **/
 func (n *Net) ReadMessage() {
 	var raw string

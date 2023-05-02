@@ -30,7 +30,7 @@ func NewServer(port string, addr string, id int, net *Net) *Server {
 }
 
 /** createSocket()
-Crée le socket auquel se connectera le client web
+Crée la websocket auquel se connectera le client web
 **/
 func (server *Server) createSocket(w http.ResponseWriter, r *http.Request) {
 	var upgrader = websocket.Upgrader{
@@ -68,7 +68,7 @@ func (server *Server) Send() {
 }
 
 /** closeSocket()
-Ferme le socket
+Ferme la websocket
 **/
 func (server *Server) closeSocket() {
   display.Info(server.id, "ws_close", "End of receptions : closing socket")

@@ -91,6 +91,14 @@ func (msg Message) ToString() string {
 	return formatted_str
 }
 
+/** ToStringForContent()
+Transforme un objet Message en chaîne de caractères intégrable dans le Content d'un autre Message
+**/
+func (msg Message) ToStringForContent() string {
+	formatted_str := fmt.Sprintf("°+From+%d°+To+%d°+Content+%s°+Stamp+%d°+MessageType+%s°+VectorClock+%s°+Color+%s", msg.From, msg.To, msg.Content, msg.Stamp, msg.MessageType, vectClockToString(msg.VectClock), msg.Color)
+	return formatted_str
+}
+
 /** vectClockToString()
 Transforme une horloge vectorielle (tableau d'entiers) en chaîne de caractères
 **/
@@ -130,14 +138,6 @@ func (s *State) VectClockIncr(otherClock []int, nbSites int) {
 	for i := 0; i < nbSites; i++ {
 		s.VectClock[i] = Max(s.VectClock[i], otherClock[i])
 	}
-}
-
-/** ToStringForContent()
-Transforme un objet Message en chaîne de caractères intégrable dans le Content d'un Message
-**/
-func (msg Message) ToStringForContent() string {
-	formatted_str := fmt.Sprintf("°+From+%d°+To+%d°+Content+%s°+Stamp+%d°+MessageType+%s°+VectorClock+%s°+Color+%s", msg.From, msg.To, msg.Content, msg.Stamp, msg.MessageType, vectClockToString(msg.VectClock), msg.Color)
-	return formatted_str
 }
 
 /** ConcernSnapshot()
