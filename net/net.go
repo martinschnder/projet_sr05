@@ -45,7 +45,7 @@ func NewNet(id int, port string, addr string) *Net {
 	// Les serveurs communiquent entre eux et servent d'intermédiaire avec les clients
 	n.server = NewServer(port, addr, id, n)
 	display.Info(n.id, "NewNet", "Successfully created server instance")
-	n.messages = make(chan MessageWrapper)
+	n.messages = make(chan MessageWrapper, 10)
 
 	// Snapshot
 	n.color = "white"
@@ -142,7 +142,16 @@ func (n *Net) receiveExternalMessage(msg Message) {
 			Color:       n.color,
 		}
 		display.Info(n.id, "receiveSnapshotMessage", "Sending prepost message")
-		go n.writeMessage(newmsg)
+		if n.initator {
+			go func (msg Message){
+				n.messages <- (MessageWrapper{
+					Action:  "send",
+					Message: msg,
+				})
+			}(newmsg)
+		} else {
+			go n.writeMessage(newmsg)
+		}
 	}
 
 	switch msg.MessageType {
@@ -209,10 +218,6 @@ func (n *Net) receiveRequestMessage(received_msg Message) {
 	}
 	display.Info(n.id, "receiveRequestMessage", fmt.Sprintf("Sending Ack message to %d", received_msg.From))
 	go n.writeMessage(msg)
-	if n.requestTab[n.id].RequestType == "access" && n.isValidRequest() {
-		display.Warning(n.id, "MessageHandler", "Entering in critical section")
-		n.server.SendMessage("OkCs")
-	}
 }
 
 /** receiveReleaseMessage()
@@ -225,6 +230,8 @@ func (n *Net) receiveReleaseMessage(msg Message) {
 		RequestType: "release",
 		Stamp:       msg.Stamp,
 	}
+	// Update les horloges
+	n.server.Send()
 	if n.requestTab[n.id].RequestType == "access" && n.isValidRequest() {
 		display.Warning(n.id, "receiveReleaseMessage", "Entering in critical section")
 		n.server.SendMessage("OkCs")
@@ -359,7 +366,7 @@ func (n *Net) ReadMessage() {
 	for {
 		fmt.Scanln(&raw)
 		var msg = MessageFromString(raw)
-		if msg.From != n.id {
+		if (msg.From != n.id || msg.ConcernSnapshot() ) {
 			n.messages <- MessageWrapper{
 				Action:  "process",
 				Message: msg,
