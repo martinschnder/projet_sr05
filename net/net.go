@@ -142,7 +142,16 @@ func (n *Net) receiveExternalMessage(msg Message) {
 			Color:       n.color,
 		}
 		display.Info(n.id, "receiveSnapshotMessage", "Sending prepost message")
-		go n.writeMessage(newmsg)
+		if n.initator {
+			go func (msg Message){
+				n.messages <- (MessageWrapper{
+					Action:  "send",
+					Message: msg,
+				})
+			}(newmsg)
+		} else {
+			go n.writeMessage(newmsg)
+		}
 	}
 
 	switch msg.MessageType {
@@ -359,7 +368,7 @@ func (n *Net) ReadMessage() {
 	for {
 		fmt.Scanln(&raw)
 		var msg = MessageFromString(raw)
-		if msg.From != n.id {
+		if (msg.From != n.id || msg.ConcernSnapshot() ) {
 			n.messages <- MessageWrapper{
 				Action:  "process",
 				Message: msg,
